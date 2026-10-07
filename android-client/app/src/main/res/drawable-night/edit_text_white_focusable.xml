@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- When focused, show dark background with an accent border. Pure white at
+         3dp reads as a glowing box against the dark dialog, so the highlight is
+         thinner and tinted instead. -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/nb_gray_light" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/nb_orange" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+
+    <!-- Default state: dark background with 1dp gray border -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/nb_gray_light" />
+            <stroke
+                android:width="1dp"
+                android:color="#464a52" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</selector>

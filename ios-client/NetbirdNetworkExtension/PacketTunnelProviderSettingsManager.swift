@@ -1,0 +1,185 @@
+//
+//  PacketTunnelProviderSettingsManager.swift
+//  NetBirdiOS
+//
+//  Created by Pascal Fischer on 06.10.23.
+//
+
+import Foundation
+import NetworkExtension
+
+class PacketTunnelProviderSettingsManager {
+    
+    private weak var packetTunnelProvider: PacketTunnelProvider?
+    
+    private var interfaceIP: String?
+    private var interfaceIPv6: String?
+    private var ipv4Routes: [NEIPv4Route]?
+    private var ipv6Routes: [NEIPv6Route]?
+    private var dnsSettings: NEDNSSettings?
+    private var needFallbackNS: Bool = false
+    private var containsDefaultRoute: Bool = false
+    private var pixiuDefaultRoute: Bool = false
+
+    // Link-local dummy IPv6 used to satisfy NEIPv6Settings when the
+    // interface has no IPv6 address but we still need a ::/0 blackhole route
+    // to prevent IPv6 leaks while the IPv4 default route is in the tunnel.
+    private static let ipv6BlackholeAddress = "fe80::1"
+    private static let ipv6BlackholePrefix: NSNumber = 64
+
+    init(with packetTunnelProvider: PacketTunnelProvider) {
+        self.packetTunnelProvider = packetTunnelProvider
+    }
+
+    /// Installs 0.0.0.0/0 and ::/0 only after a Mihomo node is selected.
+    /// Turning it off does not select a NetBird exit node.
+    func setPixiuDefaultRoute(_ enabled: Bool) {
+        pixiuDefaultRoute = enabled
+        updateTunnel()
+    }
+
+    func setRoutes(v4Routes: [NEIPv4Route], v6Routes: [NEIPv6Route], containsDefault: Bool) {
+            self.needFallbackNS = containsDefault
+            self.containsDefaultRoute = containsDefault
+            self.ipv4Routes = v4Routes
+            self.ipv6Routes = v6Routes
+            self.updateTunnel()
+    }
+
+    func setDNS(config: HostDNSConfig) {
+        let dnsSettings = NEDNSSettings(servers: [config.serverIP])
+
+        // Always route all DNS through the tunnel on iOS.
+        // The Go DNS server has a root zone fallback handler that forwards
+        // unmatched queries to host DNS servers (e.g. 1.1.1.1).
+        // This avoids DNS failures when exit node routes (0.0.0.0/0) are
+        // added or removed, as iOS system DNS on cellular is unreliable
+        // with an active VPN tunnel.
+        dnsSettings.matchDomains = [""]
+
+        var searchDomains: [String] = []
+        for domain in config.domains {
+            if !domain.disabled && !domain.matchOnly {
+                searchDomains.append(domain.domain)
+            }
+        }
+        if !searchDomains.isEmpty {
+            dnsSettings.searchDomains = searchDomains
+        }
+
+        self.dnsSettings = dnsSettings
+        self.updateTunnel()
+    }
+    
+    func setInterfaceIP(interfaceIP: String) {
+        self.interfaceIP = interfaceIP
+        // A new engine session always pushes setInterfaceIP first, then setInterfaceIPv6
+        // only when the session actually has a v6 address. Drop any previous session's v6
+        // here so a v4-only session (IPv6 disabled or a v4-only profile) can't keep applying
+        // a stale interfaceIPv6 — which would send createTunnelSettings down the dual-stack
+        // branch and skip the ::/0 blackhole, leaking IPv6 past a selected exit node. This
+        // manager outlives individual engine sessions (it is owned by the extension process),
+        // so the reset has to happen at the session boundary rather than on teardown.
+        self.interfaceIPv6 = nil
+    }
+
+    func setInterfaceIPv6(interfaceIPv6: String) {
+        self.interfaceIPv6 = interfaceIPv6
+    }
+
+    func getInterfaceIP() -> String? {
+        return self.interfaceIP
+    }
+    
+    private func updateTunnel() {
+        if let tunnelSettings = createTunnelSettings() {
+            if let tunnelProvider = self.packetTunnelProvider {
+                tunnelProvider.setTunnelSettings(tunnelNetworkSettings: tunnelSettings)
+            } else {
+                print("Failed to get tunnel provider")
+            }
+        } else {
+            print("Failed to update tunnel")
+        }
+    }
+    
+    private func createTunnelSettings() -> NEPacketTunnelNetworkSettings? {
+        if let interfaceIP = interfaceIP {
+            if let (ipAddress, subnetMask) = extractIPAddressAndSubnet(from: interfaceIP) {
+                let tunnelNetworkSettings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: ipAddress)
+                let ipv4Settings = NEIPv4Settings(addresses: [ipAddress], subnetMasks: [subnetMask])
+                
+                ipv4Settings.includedRoutes = [ NEIPv4Route(destinationAddress: ipAddress, subnetMask: subnetMask) ]
+                
+                if self.ipv4Routes != nil {
+                    ipv4Settings.includedRoutes = self.ipv4Routes
+                }
+                if self.pixiuDefaultRoute {
+                    var routes = ipv4Settings.includedRoutes ?? []
+                    routes.removeAll { $0.destinationAddress == "0.0.0.0" && $0.destinationSubnetMask == "0.0.0.0" }
+                    routes.append(NEIPv4Route(destinationAddress: "0.0.0.0", subnetMask: "0.0.0.0"))
+                    ipv4Settings.includedRoutes = routes
+                    self.containsDefaultRoute = true
+                }
+                tunnelNetworkSettings.ipv4Settings = ipv4Settings
+                
+                var v6Addresses: [String] = []
+                var v6PrefixLengths: [NSNumber] = []
+                var v6Routes: [NEIPv6Route] = []
+
+                if let ipv6CIDR = self.interfaceIPv6,
+                   let (v6Addr, v6Prefix) = extractIPv6AddressAndPrefix(from: ipv6CIDR) {
+                    v6Addresses.append(v6Addr)
+                    v6PrefixLengths.append(NSNumber(value: v6Prefix))
+                    v6Routes = self.ipv6Routes ?? []
+                    if self.pixiuDefaultRoute {
+                        v6Routes.removeAll { $0.destinationAddress == "::" && $0.destinationNetworkPrefixLength == 0 }
+                        v6Routes.append(NEIPv6Route(destinationAddress: "::", networkPrefixLength: 0))
+                    }
+                } else if self.containsDefaultRoute {
+                    v6Addresses.append(Self.ipv6BlackholeAddress)
+                    v6PrefixLengths.append(Self.ipv6BlackholePrefix)
+                    v6Routes = [NEIPv6Route(destinationAddress: "::", networkPrefixLength: 0)]
+                }
+
+                if !v6Addresses.isEmpty {
+                    let ipv6Settings = NEIPv6Settings(addresses: v6Addresses, networkPrefixLengths: v6PrefixLengths)
+                    if !v6Routes.isEmpty {
+                        ipv6Settings.includedRoutes = v6Routes
+                    }
+                    tunnelNetworkSettings.ipv6Settings = ipv6Settings
+                } else {
+                    // Always assign IPv6 settings explicitly: leaving the property nil
+                    // makes setTunnelNetworkSettings KEEP the previously applied IPv6
+                    // config, so the ::/0 blackhole installed while an exit node was
+                    // selected would linger after deselect and keep black-holing traffic.
+                    let ipv6Settings = NEIPv6Settings(addresses: [Self.ipv6BlackholeAddress], networkPrefixLengths: [Self.ipv6BlackholePrefix])
+                    // Explicitly clear any previously-applied IPv6 routes.
+                    ipv6Settings.includedRoutes = []
+                    tunnelNetworkSettings.ipv6Settings = ipv6Settings
+                }
+                
+                tunnelNetworkSettings.mtu = 1280
+                
+                if self.dnsSettings != nil {
+                    tunnelNetworkSettings.dnsSettings = self.dnsSettings
+                }
+                
+                return tunnelNetworkSettings
+            }
+        }
+
+        return nil
+    }
+
+    private func extractIPv6AddressAndPrefix(from cidr: String) -> (String, Int)? {
+        let parts = cidr.split(separator: "/")
+        guard parts.count == 2,
+              let prefix = Int(parts[1]),
+              (0...128).contains(prefix) else {
+            return nil
+        }
+        return (String(parts[0]), prefix)
+    }
+
+}

@@ -1,0 +1,846 @@
+//
+//  TVSettingsView.swift
+//  NetBird
+//
+//  Settings view for Apple TV.
+//
+//  Replaces the iOS side drawer menu.
+//  Contains all configuration options in a focus-navigable format.
+//
+
+import SwiftUI
+import UIKit
+import NetBirdSDK
+
+#if os(tvOS)
+
+/// Settings screen for tvOS, replacing the iOS side drawer.
+struct TVSettingsView: View {
+    @EnvironmentObject var viewModel: ViewModel
+    @State private var showPreSharedKeyAlert = false
+
+    // tvOS rows use their own `isDisabled` flag rather than SwiftUI's
+    // .disabled(), which breaks focus navigation here (see TVSettingsToggleRow).
+    private var editingDisabled: Bool {
+        viewModel.mdmRestrictions.features.disableUpdateSettings
+    }
+    private var pskManaged: Bool {
+        viewModel.mdmRestrictions.mdm.preSharedKey
+    }
+    private var rosenpassLocked: Bool {
+        viewModel.mdmRestrictions.mdm.rosenpassEnabled || editingDisabled
+    }
+    private var rosenpassPermissiveLocked: Bool {
+        viewModel.mdmRestrictions.mdm.rosenpassPermissive || editingDisabled
+    }
+
+    private var remoteJobsLocked: Bool {
+        viewModel.mdmRestrictions.mdm.remoteJobsAllowed || editingDisabled
+    }
+
+    /// tvOS rows carry their explanation in the subtitle - there is no footer
+    /// to put it in, and a row that is merely dimmed gives the user no reason.
+    private func subtitle(_ text: String, managed: Bool) -> String {
+        managed ? "Managed by your organization" : text
+    }
+    @State private var showDocsQRCode = false
+
+    var body: some View {
+        ZStack {
+            TVGradientBackground()
+
+            VStack(alignment: .leading, spacing: 30) {
+                Text("Settings")
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundColor(TVColors.textPrimary)
+                    .padding(.bottom, 20)
+
+                // Settings options
+                ScrollView {
+                    VStack(spacing: 20) {
+                        TVSettingsSection(title: "Connection") {
+                            TVSettingsToggleRow(
+                                icon: "bolt.horizontal.circle.fill",
+                                title: "Connect On Demand",
+                                subtitle: subtitle("Reconnect automatically after a reboot or network change",
+                                                   managed: viewModel.mdmRestrictions.mdm.disableAutoConnect || editingDisabled),
+                                isOn: Binding(
+                                    get: { viewModel.connectOnDemand },
+                                    set: { newValue in
+                                        viewModel.setConnectOnDemand(isEnabled: newValue)
+                                    }
+                                ),
+                                isDisabled: viewModel.mdmRestrictions.mdm.disableAutoConnect || editingDisabled
+                            )
+
+                            if !viewModel.mdmRestrictions.mdm.managesManagementURL {
+                                TVSettingsRow(
+                                    icon: "server.rack",
+                                    title: "Change Server",
+                                    subtitle: "Switch to a different NetBird server",
+                                    action: { viewModel.showChangeServerAlert = true }
+                                )
+                            }
+                        }
+
+                        if !viewModel.mdmRestrictions.mdm.hidesAdvancedView {
+                        TVSettingsSection(title: "Advanced") {
+                            TVSettingsToggleRow(
+                                icon: "ant.fill",
+                                title: "Trace Logging",
+                                subtitle: "Enable detailed logs for troubleshooting",
+                                isOn: $viewModel.traceLogsEnabled
+                            )
+
+                            TVSettingsToggleRow(
+                                icon: "shield.lefthalf.filled",
+                                title: "Rosenpass",
+                                subtitle: subtitle("Post-quantum secure encryption", managed: rosenpassLocked),
+                                isOn: Binding(
+                                    get: { viewModel.rosenpassEnabled },
+                                    set: { newValue in
+                                        // When disabling Rosenpass, also disable permissive mode
+                                        if !newValue {
+                                            viewModel.setRosenpassPermissive(permissive: false)
+                                        }
+                                        viewModel.setRosenpassEnabled(enabled: newValue)
+                                    }
+                                ),
+                                isDisabled: rosenpassLocked
+                            )
+
+                            TVSettingsToggleRow(
+                                icon: "shield.checkerboard",
+                                title: "Rosenpass Permissive",
+                                subtitle: subtitle("Allow connections with non-Rosenpass peers",
+                                                   managed: rosenpassPermissiveLocked),
+                                isOn: Binding(
+                                    get: { viewModel.rosenpassPermissive },
+                                    set: { newValue in
+                                        viewModel.setRosenpassPermissive(permissive: newValue)
+                                    }
+                                ),
+                                isDisabled: !viewModel.rosenpassEnabled || rosenpassPermissiveLocked
+                            )
+                        }
+                        }
+
+                        TVSettingsSection(title: "Network") {
+                            TVSettingsToggleRow(
+                                icon: "network",
+                                title: "Disable IPv6",
+                                subtitle: subtitle("Disable IPv6 overlay addressing on the tunnel", managed: editingDisabled),
+                                isOn: Binding(
+                                    get: { viewModel.disableIPv6 },
+                                    set: { newValue in
+                                        viewModel.setDisableIPv6(disabled: newValue)
+                                    }
+                                ),
+                                isDisabled: editingDisabled
+                            )
+
+                            TVSettingsToggleRow(
+                                icon: "arrow.triangle.branch",
+                                title: "Force Relay",
+                                subtitle: subtitle("Force all connections through relay servers", managed: editingDisabled),
+                                isOn: Binding(
+                                    get: { viewModel.forceRelayConnection },
+                                    set: { newValue in
+                                        viewModel.setForcedRelayConnection(isEnabled: newValue)
+                                    }
+                                ),
+                                isDisabled: editingDisabled
+                            )
+                        }
+
+                        TVSettingsSection(title: "Security") {
+                            TVSettingsRow(
+                                icon: "key.fill",
+                                title: "Pre-Shared Key",
+                                subtitle: subtitle(
+                                    viewModel.presharedKeySecure ? "Configured" : "Not configured",
+                                    managed: pskManaged || editingDisabled
+                                ),
+                                action: (pskManaged || editingDisabled)
+                                    ? nil
+                                    : { showPreSharedKeyAlert = true }
+                            )
+                        }
+
+                        TVSettingsSection(title: "Troubleshooting") {
+                            TVSettingsToggleRow(
+                                icon: "doc.zipper",
+                                title: "Remote Debug Bundles",
+                                subtitle: subtitle("Let your administrator request a debug bundle from this device",
+                                                   managed: remoteJobsLocked),
+                                isOn: Binding(
+                                    get: { viewModel.remoteJobsAllowed },
+                                    set: { newValue in
+                                        viewModel.setRemoteJobsAllowed(allowed: newValue)
+                                    }
+                                ),
+                                isDisabled: remoteJobsLocked
+                            )
+                        }
+
+                        TVSettingsSection(title: "Info") {
+                            TVSettingsRow(
+                                icon: "qrcode.viewfinder",
+                                title: "Documentation",
+                                subtitle: "Scan QR code to visit docs.netbird.io",
+                                action: { showDocsQRCode = true }
+                            )
+
+                            TVSettingsInfoRow(
+                                icon: "info.circle.fill",
+                                title: "Version",
+                                subtitle: "\(appVersion) (core \(goVersion))"
+                            )
+                        }
+                    }
+                    .padding(.top, 15)
+                    .padding(.bottom, 50)
+                }
+            }
+            .padding(80)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Change server alert overlay
+            if viewModel.showChangeServerAlert {
+                TVChangeServerAlert(viewModel: viewModel)
+            }
+
+            // Rosenpass changed alert overlay
+            if viewModel.showRosenpassChangedAlert {
+                TVRosenpassChangedAlert(viewModel: viewModel)
+            }
+
+        }
+        .onAppear {
+            viewModel.refreshMDMRestrictions()
+            // Load settings from storage to sync UI with actual values
+            viewModel.loadRosenpassSettings()
+            viewModel.loadPreSharedKey()
+            viewModel.loadIPv6Settings()
+            viewModel.loadRemoteJobsSettings()
+        }
+        .sheet(isPresented: $showDocsQRCode) {
+            TVQRCodeSheet(
+                url: "https://docs.netbird.io",
+                title: "Documentation",
+                subtitle: "Scan this QR code to visit our docs"
+            )
+        }
+        .fullScreenCover(isPresented: $showPreSharedKeyAlert) {
+            TVPreSharedKeyAlert(
+                viewModel: viewModel,
+                isPresented: $showPreSharedKeyAlert
+            )
+        }
+    }
+    
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+    }
+
+    /// Version of the Go client baked into NetBirdSDK.xcframework at compile time.
+    private var goVersion: String {
+        let version = NetBirdSDKGoClientVersion()
+        return version.isEmpty ? "unknown" : version
+    }
+}
+
+struct TVSettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text(title.uppercased())
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(TVColors.textPrimary.opacity(0.7))
+                .tracking(2)
+
+            VStack(spacing: 4) {
+                content()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white.opacity(0.04))
+            )
+        }
+    }
+}
+
+/// Suppresses the default tvOS focus highlight so only our custom style is visible.
+struct TVSettingsButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+struct TVSettingsRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let action: (() -> Void)?
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: { action?() }) {
+            HStack(spacing: 20) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundColor(isFocused ? .black : .accentColor)
+                    .frame(width: 40)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(isFocused ? .black : TVColors.textPrimary)
+
+                    Text(subtitle)
+                        .font(.system(size: 18))
+                        .foregroundColor(isFocused ? .black.opacity(0.6) : TVColors.textSecondary)
+                }
+
+                Spacer()
+
+                if action != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 20))
+                        .foregroundColor(isFocused ? .black.opacity(0.5) : TVColors.textSecondary)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isFocused ? Color.white : Color.clear)
+            )
+        }
+        .buttonStyle(TVSettingsButtonStyle())
+        .focused($isFocused)
+        .disabled(action == nil)
+    }
+}
+
+struct TVSettingsToggleRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    @Binding var isOn: Bool
+    var isDisabled: Bool = false
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        // Note: We don't use .disabled() because that breaks focus navigation on tvOS.
+        // Instead, we check isDisabled in the action and show visual disabled state.
+        Button(action: { if !isDisabled { isOn.toggle() } }) {
+            HStack(spacing: 20) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundColor(isDisabled ? TVColors.textSecondary.opacity(0.6) : (isFocused ? .black : .accentColor))
+                    .frame(width: 40)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(isDisabled ? TVColors.textSecondary.opacity(0.6) : (isFocused ? .black : TVColors.textPrimary))
+
+                    Text(subtitle)
+                        .font(.system(size: 18))
+                        .foregroundColor(isDisabled ? TVColors.textSecondary.opacity(0.5) : (isFocused ? .black.opacity(0.6) : TVColors.textSecondary))
+                }
+
+                Spacer()
+
+                // Custom toggle for better TV visibility
+                ZStack {
+                    Capsule()
+                        .fill(isDisabled ? Color.gray.opacity(0.2) : (isOn ? Color.green : Color.gray.opacity(0.3)))
+                        .frame(width: 70, height: 40)
+
+                    Circle()
+                        .fill(isDisabled ? Color.gray.opacity(0.5) : Color.white)
+                        .frame(width: 32, height: 32)
+                        .offset(x: isOn ? 15 : -15)
+                        .animation(.easeInOut(duration: 0.2), value: isOn)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isFocused && !isDisabled ? Color.white : Color.clear)
+            )
+        }
+        .buttonStyle(TVSettingsButtonStyle())
+        .focused($isFocused)
+    }
+}
+
+/// Focusable informational row (for display-only items like Documentation URL, Version).
+/// Must be focusable so tvOS ScrollView can scroll to the Info section.
+struct TVSettingsInfoRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button(action: {}) {
+            HStack(spacing: 20) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundColor(isFocused ? .black.opacity(0.5) : TVColors.textSecondary)
+                    .frame(width: 40)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(isFocused ? .black : TVColors.textPrimary)
+
+                    Text(subtitle)
+                        .font(.system(size: 18))
+                        .foregroundColor(isFocused ? .black.opacity(0.6) : TVColors.textSecondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(isFocused ? Color.white : Color.clear)
+            )
+        }
+        .buttonStyle(TVSettingsButtonStyle())
+        .focused($isFocused)
+    }
+}
+
+/// Reusable button for TV alert dialogs with proper focus styling.
+/// Text turns dark when focused to remain readable against the light highlight.
+struct TVAlertButton: View {
+    enum Style {
+        case outlined
+        case filled(Color)
+    }
+
+    let title: String
+    let style: Style
+    let isFocused: Bool
+    let action: () -> Void
+    var isSemibold: Bool = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 24, weight: isSemibold || isFilled ? .semibold : .regular))
+                .foregroundColor(isFocused ? .black : .white)
+                .padding(.horizontal, isFilled ? 50 : 40)
+                .padding(.vertical, 16)
+                .background(backgroundView)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var isFilled: Bool {
+        if case .filled = style { return true }
+        return false
+    }
+
+    @ViewBuilder
+    private var backgroundView: some View {
+        switch style {
+        case .outlined:
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.5), lineWidth: 2)
+        case .filled(let color):
+            RoundedRectangle(cornerRadius: 12)
+                .fill(color)
+        }
+    }
+}
+
+struct TVChangeServerAlert: View {
+    @ObservedObject var viewModel: ViewModel
+
+    private enum FocusedButton {
+        case cancel, confirm
+    }
+
+    @FocusState private var focusedButton: FocusedButton?
+    @State private var lastFocusedButton: FocusedButton = .cancel
+
+    var body: some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+
+            // Alert box
+            VStack(spacing: 40) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.orange)
+
+                Text("Change Server?")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundColor(TVColors.textAlert)
+
+                Text("This will disconnect from the current server and erase local configuration.")
+                    .font(.system(size: 24))
+                    .foregroundColor(TVColors.textAlert)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 500)
+
+                HStack(spacing: 40) {
+                    // Cancel button
+                    TVAlertButton(
+                        title: "Cancel",
+                        style: .outlined,
+                        isFocused: focusedButton == .cancel,
+                        action: { viewModel.showChangeServerAlert = false }
+                    )
+                    .focused($focusedButton, equals: .cancel)
+
+                    // Confirm button
+                    TVAlertButton(
+                        title: "Confirm",
+                        style: .filled(Color.red),
+                        isFocused: focusedButton == .confirm,
+                        action: {
+                            viewModel.showChangeServerAlert = false
+                            // Disarm On Demand before the disconnect and the config wipe: an
+                            // armed rule would have the system restart a tunnel that can no
+                            // longer log in.
+                            viewModel.resetForServerChange {
+                                viewModel.navigateToServerView = true
+                            }
+                        }
+                    )
+                    .focused($focusedButton, equals: .confirm)
+                }
+                .focusSection()
+            }
+            .padding(60)
+            .background(
+                RoundedRectangle(cornerRadius: 30)
+                    .fill(TVColors.bgSideDrawer)
+            )
+        }
+        .onAppear {
+            focusedButton = .cancel
+        }
+        .onChange(of: focusedButton) { oldValue, newValue in
+            _ = oldValue  // Suppress unused warning
+            if let newValue = newValue {
+                lastFocusedButton = newValue
+            } else {
+                // Focus escaped - pull it back
+                focusedButton = lastFocusedButton
+            }
+        }
+    }
+}
+
+/// Shown when the user disconnects manually while On Demand is armed. Without this the
+/// tunnel would come straight back up and the disconnect would look like it failed.
+struct TVOnDemandDisconnectAlert: View {
+    @ObservedObject var viewModel: ViewModel
+
+    private enum FocusedButton {
+        case cancel, disconnect
+    }
+
+    @FocusState private var focusedButton: FocusedButton?
+    @State private var lastFocusedButton: FocusedButton = .cancel
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+
+            VStack(spacing: 40) {
+                Image(systemName: "bolt.horizontal.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.orange)
+
+                Text("Connect On Demand Is Active")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundColor(TVColors.textAlert)
+
+                Text("NetBird will reconnect automatically. Do you want to turn Connect On Demand off and disconnect?")
+                    .font(.system(size: 24))
+                    .foregroundColor(TVColors.textAlert)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 600)
+
+                HStack(spacing: 40) {
+                    TVAlertButton(
+                        title: "Cancel",
+                        style: .outlined,
+                        isFocused: focusedButton == .cancel,
+                        action: { viewModel.showOnDemandDisconnectAlert = false }
+                    )
+                    .focused($focusedButton, equals: .cancel)
+
+                    TVAlertButton(
+                        title: "Turn Off & Disconnect",
+                        style: .filled(Color.red),
+                        isFocused: focusedButton == .disconnect,
+                        action: {
+                            viewModel.showOnDemandDisconnectAlert = false
+                            viewModel.closeWithOnDemandDisabled()
+                        }
+                    )
+                    .focused($focusedButton, equals: .disconnect)
+                }
+                .focusSection()
+            }
+            .padding(60)
+            .background(
+                RoundedRectangle(cornerRadius: 30)
+                    .fill(TVColors.bgSideDrawer)
+            )
+        }
+        .onAppear {
+            focusedButton = .cancel
+        }
+        .onChange(of: focusedButton) { oldValue, newValue in
+            _ = oldValue  // Suppress unused warning
+            if let newValue = newValue {
+                lastFocusedButton = newValue
+            } else {
+                // Focus escaped - pull it back
+                focusedButton = lastFocusedButton
+            }
+        }
+    }
+}
+
+struct TVRosenpassChangedAlert: View {
+    @ObservedObject var viewModel: ViewModel
+
+    private enum FocusedButton {
+        case later, reconnect
+    }
+
+    @FocusState private var focusedButton: FocusedButton?
+    @State private var lastFocusedButton: FocusedButton = .later
+
+    var body: some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+
+            // Alert box
+            VStack(spacing: 40) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 60))
+                    .foregroundColor(.blue)
+
+                Text("Reconnect Required")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundColor(TVColors.textAlert)
+
+                Text("Rosenpass settings have changed. Reconnect to apply the new security settings.")
+                    .font(.system(size: 24))
+                    .foregroundColor(TVColors.textAlert)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 500)
+
+                HStack(spacing: 40) {
+                    // Later button
+                    TVAlertButton(
+                        title: "Later",
+                        style: .outlined,
+                        isFocused: focusedButton == .later,
+                        action: { viewModel.showRosenpassChangedAlert = false }
+                    )
+                    .focused($focusedButton, equals: .later)
+
+                    // Reconnect button
+                    TVAlertButton(
+                        title: "Reconnect",
+                        style: .filled(Color.blue),
+                        isFocused: focusedButton == .reconnect,
+                        action: {
+                            viewModel.showRosenpassChangedAlert = false
+                            // performClose(), not close(): this is an explicit reconnect, so the
+                            // On Demand disconnect prompt would only interrupt the sequence.
+                            viewModel.performClose()
+                            // Small delay before reconnecting to allow disconnect to complete
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                viewModel.connect()
+                            }
+                        }
+                    )
+                    .focused($focusedButton, equals: .reconnect)
+                }
+                .focusSection()
+            }
+            .padding(60)
+            .background(
+                RoundedRectangle(cornerRadius: 30)
+                    .fill(TVColors.bgSideDrawer)
+            )
+        }
+        .onAppear {
+            focusedButton = .reconnect
+        }
+        .onChange(of: focusedButton) { oldValue, newValue in
+            _ = oldValue  // Suppress unused warning
+            if let newValue = newValue {
+                lastFocusedButton = newValue
+            } else {
+                // Focus escaped - pull it back
+                focusedButton = lastFocusedButton
+            }
+        }
+    }
+}
+
+struct TVPreSharedKeyAlert: View {
+    @ObservedObject var viewModel: ViewModel
+    @Binding var isPresented: Bool
+    @State private var keyText: String = ""
+    @State private var isInvalid: Bool = false
+
+    var body: some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+
+            // Alert box
+            VStack(spacing: 30) {
+                Image(systemName: "key.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.orange)
+
+                Text("Pre-Shared Key")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundColor(TVColors.textPrimary)
+
+                Text("Enter a 32-byte base64-encoded key. You will only communicate with peers that use the same key.")
+                    .font(.system(size: 22))
+                    .foregroundColor(TVColors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 600)
+
+                // Text field for key input
+                TextField("Pre-shared key", text: $keyText)
+                    .font(.system(size: 24))
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.06))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isInvalid ? Color.red : Color.white.opacity(0.12), lineWidth: isInvalid ? 2 : 1)
+                    )
+                    .frame(maxWidth: 600)
+                    .onChange(of: keyText) { _, newValue in
+                        isInvalid = !isValidBase64Key(newValue)
+                    }
+
+                if isInvalid && !keyText.isEmpty {
+                    Text("Invalid key - must be 32-byte base64 encoded")
+                        .font(.system(size: 18))
+                        .foregroundColor(.red)
+                }
+
+                HStack(spacing: 30) {
+                    // Cancel button
+                    TVPreSharedKeyButton(
+                        title: "Cancel",
+                        color: nil,
+                        action: { isPresented = false }
+                    )
+
+                    // Remove button (only if key is configured)
+                    if viewModel.presharedKeySecure {
+                        TVPreSharedKeyButton(
+                            title: "Remove",
+                            color: .red,
+                            action: {
+                                viewModel.removePreSharedKey()
+                                isPresented = false
+                            }
+                        )
+                    }
+
+                    // Save button
+                    TVPreSharedKeyButton(
+                        title: "Save",
+                        color: (isInvalid || keyText.isEmpty) ? .gray : .green,
+                        action: {
+                            if !isInvalid && !keyText.isEmpty {
+                                viewModel.presharedKey = keyText
+                                viewModel.updatePreSharedKey()
+                                isPresented = false
+                            }
+                        }
+                    )
+                }
+            }
+            .padding(60)
+            .background(
+                RoundedRectangle(cornerRadius: 30)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.14, green: 0.14, blue: 0.24),
+                                Color(red: 0.08, green: 0.08, blue: 0.14)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 30)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+        }
+        .focusSection()
+        .onExitCommand {
+            isPresented = false
+        }
+        .onAppear {
+            // Pre-fill with current key if editing
+            if viewModel.presharedKeySecure {
+                keyText = viewModel.presharedKey
+            }
+        }
+    }
+
+    private func isValidBase64Key(_ input: String) -> Bool {
+        if input.isEmpty { return true }
+        guard let data = Data(base64Encoded: input) else { return false }
+        return data.count == 32
+    }
+}
+
+struct TVSettingsView_Previews: PreviewProvider {
+    static var previews: some View {
+        TVSettingsView()
+            .environmentObject(ViewModel())
+    }
+}
+
+#endif
+
+

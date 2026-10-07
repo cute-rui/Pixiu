@@ -1,0 +1,216 @@
+package io.netbird.client.ui.profile;
+
+import static android.view.View.GONE;
+
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import io.netbird.client.R;
+import io.netbird.client.tool.Profile;
+import io.netbird.client.tool.ProfileManagerWrapper;
+
+public class ProfilesFragment extends Fragment {
+    private static final String TAG = "ProfilesFragment";
+
+    private RecyclerView recyclerView;
+    private ProfilesAdapter adapter;
+    private ProfileManagerWrapper profileManager;
+    private ProfileUsageTracker usageTracker;
+    private final List<Profile> profiles = new ArrayList<>();
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_profiles, container, false);
+
+        // Initialize profile manager
+        profileManager = new ProfileManagerWrapper(requireContext());
+        usageTracker = new ProfileUsageTracker(requireContext());
+
+        recyclerView = view.findViewById(R.id.recycler_profiles);
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        adapter = new ProfilesAdapter(profiles, new ProfilesAdapter.ProfileActionListener() {
+            @Override
+            public void onSwitchProfile(Profile profile) {
+                showSwitchDialog(profile);
+            }
+
+            @Override
+            public void onEditProfile(Profile profile) {
+                showEditDialog(profile);
+            }
+
+            @Override
+            public void onLogoutProfile(Profile profile) {
+                showLogoutDialog(profile);
+            }
+
+            @Override
+            public void onRemoveProfile(Profile profile) {
+                showRemoveDialog(profile);
+            }
+        });
+        recyclerView.setAdapter(adapter);
+
+        FloatingActionButton btnAdd = view.findViewById(R.id.btn_add_profile);
+        btnAdd.setOnClickListener(v -> showAddDialog());
+
+        loadProfiles();
+
+        return view;
+    }
+
+    private void loadProfiles() {
+        profiles.clear();
+        List<Profile> loadedProfiles = profileManager.listProfiles();
+        profiles.addAll(loadedProfiles);
+        adapter.notifyDataSetChanged();
+    }
+
+    interface DialogCallback {
+        void onConfirm();
+    }
+
+    /** Yes/no confirmation for the switch, logout and remove actions. */
+    @SuppressLint("InflateParams")
+    private AlertDialog createDialog(String title, String message, DialogCallback callback) {
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_simple_edit_text, null);
+
+        TextView txtTitle = dialogView.findViewById(R.id.text_title_dialog);
+        txtTitle.setText(title);
+
+        TextView txtMessage = dialogView.findViewById(R.id.text_label_dialog);
+        txtMessage.setText(message);
+
+        dialogView.findViewById(R.id.edit_text_dialog).setVisibility(GONE);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.AlertDialogTheme)
+                .setView(dialogView)
+                .create();
+
+        dialogView.findViewById(R.id.btn_cancel_dialog).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.btn_ok_dialog).setOnClickListener(v -> {
+            callback.onConfirm();
+            dialog.dismiss();
+        });
+
+        return dialog;
+    }
+
+    private void showAddDialog() {
+        ProfileEditorDialog.showCreate(requireContext(), profileManager, profile -> loadProfiles());
+    }
+
+    private void showEditDialog(Profile profile) {
+        ProfileEditorDialog.showEdit(requireContext(), profileManager, profile,
+                saved -> loadProfiles());
+    }
+
+    private void showSwitchDialog(Profile profile) {
+        createDialog(
+                getString(R.string.profiles_dialog_switch_title),
+                getString(R.string.profiles_dialog_switch_message, profile.getName()),
+                () -> switchProfile(profile)
+        ).show();
+    }
+
+    private void showLogoutDialog(Profile profile) {
+        createDialog(
+                getString(R.string.profiles_dialog_logout_title),
+                getString(R.string.profiles_dialog_logout_message, profile.getName()),
+                () -> logoutProfile(profile)
+        ).show();
+    }
+
+    private void showRemoveDialog(Profile profile) {
+        createDialog(
+                getString(R.string.profiles_dialog_remove_title),
+                getString(R.string.profiles_dialog_remove_message, profile.getName()),
+                () -> removeProfile(profile)
+        ).show();
+    }
+
+    private void switchProfile(Profile profile) {
+        try {
+            // Switch profile (VPN service will be stopped automatically in ProfileManagerWrapper)
+            profileManager.switchProfile(profile.getID());
+            usageTracker.markUsed(profile.getID());
+
+            loadProfiles();
+
+            // Navigate back to home
+            requireActivity().getOnBackPressedDispatcher().onBackPressed();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to switch profile", e);
+            Toast.makeText(requireContext(),
+                    "Failed to switch profile: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void logoutProfile(Profile profile) {
+        try {
+            // Logout from profile (VPN service will be stopped automatically if it's the active profile)
+            profileManager.logoutProfile(profile.getID());
+
+            Toast.makeText(requireContext(),
+                    getString(R.string.profiles_success_logged_out, profile.getName()),
+                    Toast.LENGTH_SHORT).show();
+
+            loadProfiles();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to logout from profile", e);
+            Toast.makeText(requireContext(),
+                    "Failed to logout: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void removeProfile(Profile profile) {
+        try {
+            if (ProfilesAdapter.DEFAULT_PROFILE_ID.equals(profile.getID())) {
+                Toast.makeText(requireContext(),
+                        R.string.profiles_error_cannot_remove_default,
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (profile.isActive()) {
+                Toast.makeText(requireContext(),
+                        R.string.profiles_error_cannot_remove_active,
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            profileManager.removeProfile(profile.getID());
+            Toast.makeText(requireContext(),
+                    getString(R.string.profiles_success_removed, profile.getName()),
+                    Toast.LENGTH_SHORT).show();
+            loadProfiles();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to remove profile", e);
+            Toast.makeText(requireContext(),
+                    "Failed to remove profile: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+}

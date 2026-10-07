@@ -1,0 +1,287 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  build_ios:
+    name: Build iOS App
+    runs-on: macos-15
+
+    steps:
+      - name: Select Xcode 26.1.1
+        run: sudo xcode-select -s /Applications/Xcode_26.1.1.app/Contents/Developer
+
+      - name: Checkout ios-client
+        uses: actions/checkout@v4
+        with:
+          path: ios-client
+          submodules: recursive
+
+      - name: Get netbird-core commit
+        id: core-sha
+        working-directory: ios-client/netbird-core
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache NetBirdSDK xcframework
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ios-client/NetBirdSDK.xcframework
+          # The xcode segment must match the version selected in this job. The
+          # gomobile/gobind pin comes from netbird-core/go.mod, which the core
+          # sha already captures.
+          key: netbirdsdk-ios-${{ steps.core-sha.outputs.sha }}-${{ hashFiles('ios-client/build-go-lib.sh') }}-xcode-26.1.1
+
+      - name: Fetch netbird history and tags
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        working-directory: ios-client/netbird-core
+        run: |
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch --unshallow --tags
+          else
+            git fetch --tags
+          fi
+
+      - name: Setup Go
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'ios-client/netbird-core/go.mod'
+          cache-dependency-path: ios-client/netbird-core/go.sum
+
+      - name: Build NetBirdSDK xcframework
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        working-directory: ios-client
+        run: ./build-go-lib.sh
+
+      - name: Install xcpretty
+        working-directory: ios-client
+        run: gem install xcpretty
+
+      - name: Create dummy GoogleService-Info.plist
+        working-directory: ios-client
+        run: |
+          cat > GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>dummy</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>dummy</string>
+            <key>API_KEY</key>
+            <string>dummy</string>
+            <key>GCM_SENDER_ID</key>
+            <string>dummy</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>io.netbird.app</string>
+            <key>PROJECT_ID</key>
+            <string>dummy</string>
+            <key>STORAGE_BUCKET</key>
+            <string>dummy</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_APPINVITE_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <false/>
+            <key>GOOGLE_APP_ID</key>
+            <string>dummy</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Resolve Swift packages
+        working-directory: ios-client
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project NetBird.xcodeproj \
+            -scheme NetBird
+
+      - name: Build iOS App
+        working-directory: ios-client
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project NetBird.xcodeproj \
+            -scheme NetBird \
+            -destination 'generic/platform=iOS' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color
+
+      - name: Build Network Extension
+        working-directory: ios-client
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project NetBird.xcodeproj \
+            -scheme NetbirdNetworkExtension \
+            -destination 'generic/platform=iOS' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color
+
+      - name: Build Widget Extension
+        working-directory: ios-client
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project NetBird.xcodeproj \
+            -scheme NetBirdWidgetExtensionExtension \
+            -destination 'generic/platform=iOS' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color
+
+  build_tvos:
+    name: Build tvOS App
+    runs-on: macos-15
+
+    steps:
+      - name: Select Xcode 26.1.1
+        run: sudo xcode-select -s /Applications/Xcode_26.1.1.app/Contents/Developer
+
+      - name: Checkout ios-client
+        uses: actions/checkout@v4
+        with:
+          path: ios-client
+          submodules: recursive
+
+      - name: Get netbird-core commit
+        id: core-sha
+        working-directory: ios-client/netbird-core
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache NetBirdSDK xcframework
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ios-client/NetBirdSDK.xcframework
+          # The xcode segment must match the version selected in this job. The
+          # tvOS fork pin lives in build-go-lib.sh, which the hashFiles segment
+          # already captures.
+          key: netbirdsdk-tvos-${{ steps.core-sha.outputs.sha }}-${{ hashFiles('ios-client/build-go-lib.sh') }}-xcode-26.1.1
+
+      - name: Fetch netbird history and tags
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        working-directory: ios-client/netbird-core
+        run: |
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch --unshallow --tags
+          else
+            git fetch --tags
+          fi
+
+      - name: Setup Go
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'ios-client/netbird-core/go.mod'
+          cache-dependency-path: ios-client/netbird-core/go.sum
+
+      - name: Build NetBirdSDK xcframework
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        working-directory: ios-client
+        run: ./build-go-lib.sh --tvos
+
+      - name: Install xcpretty
+        working-directory: ios-client
+        run: gem install xcpretty
+
+      - name: Create dummy GoogleService-Info.plist
+        working-directory: ios-client
+        run: |
+          cat > GoogleService-Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CLIENT_ID</key>
+            <string>dummy</string>
+            <key>REVERSED_CLIENT_ID</key>
+            <string>dummy</string>
+            <key>API_KEY</key>
+            <string>dummy</string>
+            <key>GCM_SENDER_ID</key>
+            <string>dummy</string>
+            <key>PLIST_VERSION</key>
+            <string>1</string>
+            <key>BUNDLE_ID</key>
+            <string>io.netbird.app</string>
+            <key>PROJECT_ID</key>
+            <string>dummy</string>
+            <key>STORAGE_BUCKET</key>
+            <string>dummy</string>
+            <key>IS_ADS_ENABLED</key>
+            <false/>
+            <key>IS_ANALYTICS_ENABLED</key>
+            <false/>
+            <key>IS_APPINVITE_ENABLED</key>
+            <false/>
+            <key>IS_GCM_ENABLED</key>
+            <false/>
+            <key>GOOGLE_APP_ID</key>
+            <string>dummy</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Resolve Swift packages
+        working-directory: ios-client
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project NetBird.xcodeproj \
+            -scheme "NetBird TV" \
+            -destination 'generic/platform=tvOS' \
+            -derivedDataPath $RUNNER_TEMP/DerivedData-tvos
+
+      - name: Build tvOS App
+        working-directory: ios-client
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project NetBird.xcodeproj \
+            -scheme "NetBird TV" \
+            -destination 'generic/platform=tvOS' \
+            -configuration Debug \
+            -derivedDataPath $RUNNER_TEMP/DerivedData-tvos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color
+
+      - name: Build tvOS Network Extension
+        working-directory: ios-client
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project NetBird.xcodeproj \
+            -scheme "NetBirdTVNetworkExtension" \
+            -destination 'generic/platform=tvOS' \
+            -configuration Debug \
+            -derivedDataPath $RUNNER_TEMP/DerivedData-tvos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty --color
