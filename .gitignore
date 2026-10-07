@@ -1,0 +1,10 @@
+target/
+node_modules/
+.gradle/
+**/*.apk
+**/*.aab
+**/*.aar
+cli/pixiu
+cli/pixiu.exe
+verge/src-tauri/sidecar/
+verge/src-tauri/gen/

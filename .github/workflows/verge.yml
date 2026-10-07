@@ -1,0 +1,47 @@
+name: verge
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unsigned:
+    name: unsigned (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: verge/pnpm-lock.yaml
+      - name: linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - name: install
+        working-directory: verge
+        run: pnpm install --frozen-lockfile
+      - name: sidecars
+        working-directory: verge
+        run: pnpm prebuild -- ${{ matrix.target }}
+      - name: unsigned build
+        working-directory: verge
+        run: |
+          node -e "const fs=require('fs'); const p='src-tauri/tauri.conf.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.bundle.createUpdaterArtifacts=false; fs.writeFileSync(p, JSON.stringify(j,null,2));"
+          pnpm exec tauri build --target ${{ matrix.target }}

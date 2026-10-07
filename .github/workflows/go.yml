@@ -1,0 +1,64 @@
+name: go
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    name: linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.7"
+      - name: bridge
+        working-directory: bridge
+        run: go test ./...
+      - name: tun divert
+        working-directory: netbird
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+        run: go test -count=1 -run 'Overlay|PacketDestination|ReadDiverts' ./client/iface/device/
+      - name: cli
+        working-directory: cli
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+        run: |
+          go test ./...
+          go build -o pixiu .
+
+  macos:
+    name: macos
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.7"
+      - name: cli
+        working-directory: cli
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+        run: |
+          go test ./...
+          go build -o pixiu .
+
+  windows:
+    name: windows
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.7"
+      - name: cli
+        working-directory: cli
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+        run: |
+          go test ./...
+          go build -o pixiu.exe .
