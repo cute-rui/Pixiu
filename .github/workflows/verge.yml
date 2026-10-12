@@ -39,7 +39,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: sidecars
         working-directory: verge
-        run: pnpm prebuild -- ${{ matrix.target }}
+        run: pnpm run prebuild ${{ matrix.target }}
       - name: unsigned build
         working-directory: verge
         run: |
