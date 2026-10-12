@@ -49,3 +49,25 @@ func TestNewAuth_CreatesConfigWhenAbsent(t *testing.T) {
 		t.Errorf("cfgPath = %q, want %q", auth.cfgPath, cfgPath)
 	}
 }
+
+// stubFetcher is a PolicyFetcher the Java layer can also pass as null; a
+// non-nil fetcher with empty JSON is the same as no MDM source.
+type stubFetcher struct{ json string }
+
+func (s stubFetcher) FetchJSON() string { return s.json }
+
+func TestNewAuth_AcceptsPolicyFetcher(t *testing.T) {
+	nilPath := filepath.Join(t.TempDir(), "config.json")
+	if _, err := NewAuth(nilPath, "https://api.example.com:443", nil); err != nil {
+		t.Fatalf("NewAuth with nil PolicyFetcher: %v", err)
+	}
+
+	stubPath := filepath.Join(t.TempDir(), "config.json")
+	got, err := NewAuth(stubPath, "https://api.example.com:443", stubFetcher{json: ""})
+	if err != nil {
+		t.Fatalf("NewAuth with empty-JSON PolicyFetcher: %v", err)
+	}
+	if got == nil || got.config == nil || got.config.PrivateKey == "" {
+		t.Fatal("NewAuth with PolicyFetcher did not create a usable configuration")
+	}
+}
