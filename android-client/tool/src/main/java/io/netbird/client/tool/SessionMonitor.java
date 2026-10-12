@@ -10,18 +10,20 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
- * Fans the Go client's session notifications out to the app, mirroring what
- * the desktop daemon feeds its tray. The engine owns the expiry timers and
- * publishes the warnings; this class only forwards them and edge-detects the
- * NeedsLogin status label, which the run loop sets outside the event stream.
+ * Fans session notifications out to the app. The Go client only wakes this
+ * class with {@link #onStateChanged()}; it then pulls Status / deadline and
+ * arms T-10 and T-2 warnings locally, matching the desktop session watcher.
  *
- * <p>All state lives on the main thread; {@link #onStateChanged()} and
- * {@link #onSessionExpiring} may be called from any thread.
+ * <p>All state lives on the main thread; {@link #onStateChanged()} may be
+ * called from any thread.
  */
 public class SessionMonitor {
 
     /** Run-loop status label meaning an interactive login is required. */
     private static final String STATUS_NEEDS_LOGIN = "NeedsLogin";
+
+    private static final long WARNING_LEAD_SECONDS = 10 * 60;
+    private static final long FINAL_WARNING_LEAD_SECONDS = 2 * 60;
 
     private static final String LOGTAG = "SessionMonitor";
 
@@ -32,6 +34,10 @@ public class SessionMonitor {
 
     private long lastDeadline;
     private boolean wasNeedsLogin;
+    private long warningArmedFor;
+    private long finalArmedFor;
+    private final Runnable warningRunnable = () -> fireWarning(warningArmedFor, 10, false);
+    private final Runnable finalRunnable = () -> fireWarning(finalArmedFor, 2, true);
 
     public SessionMonitor(Supplier<String> status, LongSupplier deadlineUnixSeconds) {
         this.status = status;
@@ -41,15 +47,6 @@ public class SessionMonitor {
     /** Wake-up from the Go state-change signal. Safe to call from any thread. */
     public void onStateChanged() {
         handler.post(this::refresh);
-    }
-
-    /** Expiry warning from the engine's session watcher. Any thread. */
-    public void onSessionExpiring(long expiresAtUnixSeconds, long leadMinutes, boolean finalWarning) {
-        handler.post(() -> {
-            for (SessionEventListener l : listeners) {
-                notifySafely(() -> l.onSessionExpiring(expiresAtUnixSeconds, leadMinutes, finalWarning));
-            }
-        });
     }
 
     public void addListener(SessionEventListener listener) {
@@ -85,6 +82,7 @@ public class SessionMonitor {
             for (SessionEventListener l : listeners) {
                 notifySafely(() -> l.onSessionDeadlineChanged(deadline));
             }
+            rescheduleWarnings(deadline);
         }
 
         boolean needsLogin = STATUS_NEEDS_LOGIN.equals(status.get());
@@ -94,6 +92,43 @@ public class SessionMonitor {
             }
         }
         wasNeedsLogin = needsLogin;
+    }
+
+    private void rescheduleWarnings(long deadline) {
+        handler.removeCallbacks(warningRunnable);
+        handler.removeCallbacks(finalRunnable);
+        warningArmedFor = 0;
+        finalArmedFor = 0;
+        if (deadline <= 0) {
+            return;
+        }
+        long now = System.currentTimeMillis() / 1000L;
+        if (deadline <= now) {
+            return;
+        }
+        long warnAt = deadline - WARNING_LEAD_SECONDS;
+        long finalAt = deadline - FINAL_WARNING_LEAD_SECONDS;
+        if (now < warnAt) {
+            warningArmedFor = deadline;
+            handler.postDelayed(warningRunnable, (warnAt - now) * 1000L);
+        } else if (now < finalAt) {
+            fireWarning(deadline, 10, false);
+        }
+        if (now < finalAt) {
+            finalArmedFor = deadline;
+            handler.postDelayed(finalRunnable, (finalAt - now) * 1000L);
+        } else {
+            fireWarning(deadline, 2, true);
+        }
+    }
+
+    private void fireWarning(long deadline, long leadMinutes, boolean finalWarning) {
+        if (deadline == 0 || deadline != lastDeadline) {
+            return;
+        }
+        for (SessionEventListener l : listeners) {
+            notifySafely(() -> l.onSessionExpiring(deadline, leadMinutes, finalWarning));
+        }
     }
 
     private void notifySafely(Runnable r) {

@@ -71,20 +71,14 @@ class EngineRunner {
         // state signal carries no payload; consumers pull the fresh state via
         // status() / sessionExpiresAt(). Expiry warnings arrive with their
         // deadline, timed by the engine's own session watcher.
+        // Go StateChangeListener only exports OnStateChanged. Expiry
+        // warnings are scheduled from the deadline in SessionMonitor.
         goClient.setStateChangeListener(new StateChangeListener() {
             @Override
             public void onStateChanged() {
                 SessionMonitor monitor = sessionMonitor;
                 if (monitor != null) {
                     monitor.onStateChanged();
-                }
-            }
-
-            @Override
-            public void onSessionExpiring(long expiresAtUnix, long leadMinutes, boolean finalWarning) {
-                SessionMonitor monitor = sessionMonitor;
-                if (monitor != null) {
-                    monitor.onSessionExpiring(expiresAtUnix, leadMinutes, finalWarning);
                 }
             }
         });

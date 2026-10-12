@@ -23,14 +23,16 @@ jobs:
           packages: platform-tools
       - name: install ndk
         run: sdkmanager --install "ndk;23.1.7779620" "platforms;android-34" "build-tools;34.0.0"
-      - name: bind and assemble
+      - name: bind
         working-directory: android-client
         env:
           GOPROXY: https://proxy.golang.org,direct
         run: |
           chmod +x ./gradlew ./build-android-lib.sh
           ./build-android-lib.sh
-          ./gradlew assembleDebug
+      - name: assemble
+        working-directory: android-client
+        run: ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: pixiu-android-debug
