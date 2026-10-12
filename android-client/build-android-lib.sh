@@ -125,7 +125,9 @@ ensure_ndk() {
   fi
 }
 
-cd netbird
+# Physical path: this netbird entry is a symlink, and `go` resolves
+# `replace => ../bridge` from the logical working directory.
+cd -P netbird
 
 # Get version using the function
 version=$(get_version "${1:-}")

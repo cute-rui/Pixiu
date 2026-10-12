@@ -172,7 +172,9 @@ ensure_gomobile_tools() {
   done
 }
 
-cd netbird-core
+# Physical path: this netbird-core entry is a symlink, and `go` resolves
+# `replace => ../bridge` from the logical working directory.
+cd -P netbird-core
 
 version=$(get_version "${1:-}")
 echo "Using version: $version"
