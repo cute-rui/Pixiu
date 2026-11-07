@@ -495,11 +495,13 @@
         "strictRoute": "严格路由",
         "autoDetectInterface": "自动选择流量出口接口",
         "dnsHijack": "DNS 劫持",
+        "dnsMode": "DNS 模式",
         "mtu": "最大传输单元",
         "autoRedirect": "自动重定向"
       },
       "tooltips": {
         "dnsHijack": "多个 DNS 服务器请使用 , 分隔",
+        "dnsMode": "Auto 保持旧行为；hijack 需 Windows 开启严格路由或 Linux 开启自动重定向",
         "autoRedirect": "自动配置 nftables/iptables 的 TCP 重定向"
       },
       "messages": {
@@ -667,7 +669,7 @@
         "reinstallFailed": "重新安装服务失败",
         "repairFailed": "修复服务失败",
         "sidecarFailed": "继续使用 Sidecar 失败",
-        "coreAlreadyRunning": "无法启动普通模式（Sidecar）：已有内核进程正在运行（PID {{pid}}）。请先退出其他 Clash Verge 实例或使用该内核的程序，然后重试。"
+        "coreAlreadyRunning": "无法启动内核：已有内核进程正在运行。请退出相关应用或清理残留进程后重试。若仍无法解决，请重启电脑。"
       },
       "sysproxy": {
         "privilegeRequired": "无法设置系统代理：macOS 以权限不足为由拒绝了这次修改。请安装 Clash Verge 服务；管理员也可以在系统设置 → 隐私与安全性的高级选项中，关闭访问系统范围设置需要管理员密码的要求。",
@@ -712,5 +714,12 @@
       "installing": "安装服务中...",
       "uninstalling": "卸载服务中..."
     }
+  },
+  "search": {
+    "placeholder": "搜索设置",
+    "clear": "清空搜索",
+    "back": "返回结果",
+    "results": "搜索结果",
+    "empty": "未找到设置"
   }
 }

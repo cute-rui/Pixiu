@@ -5,7 +5,7 @@ use crate::feat;
 use crate::pixiu::{self, NetBirdDaemon};
 use serde::Serialize;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PixiuConnect {
     pub started: bool,
@@ -13,16 +13,19 @@ pub struct PixiuConnect {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_netbird_daemon() -> NetBirdDaemon {
     pixiu::daemon::status().await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_pixiu_wifi_blacklist() -> CmdResult<String> {
     Ok(pixiu::current_blacklist().await.join("\n"))
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn set_pixiu_wifi_blacklist(text: String) -> CmdResult {
     let list = text
         .lines()
@@ -39,6 +42,7 @@ pub async fn set_pixiu_wifi_blacklist(text: String) -> CmdResult {
 
 /// Explicit connect. A listed SSID warns and does not start unless `confirm` is true.
 #[tauri::command]
+#[specta::specta]
 pub async fn pixiu_connect(confirm: bool) -> CmdResult<PixiuConnect> {
     if let Some(ssid) = pixiu::listed_ssid().await {
         let warning = pixiu::wifi_warning(&ssid);

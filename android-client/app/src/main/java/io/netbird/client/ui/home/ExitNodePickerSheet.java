@@ -24,6 +24,7 @@ import java.util.List;
 import io.netbird.client.R;
 import io.netbird.client.ServiceAccessor;
 import io.netbird.client.databinding.SheetExitNodePickerBinding;
+import io.netbird.client.tool.CoalescingWorker;
 import io.netbird.client.tool.Preferences;
 import io.netbird.gomobile.android.NetworkArray;
 
@@ -36,12 +37,14 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
     private static final String TAG = "ExitNodePickerSheet";
 
     private SheetExitNodePickerBinding binding;
-    private ServiceAccessor serviceAccessor;
+    private volatile ServiceAccessor serviceAccessor;
     private Preferences preferences;
     private final List<ExitNodePickerAdapter.Entry> entries = new ArrayList<>();
     private final List<ExitNodePickerAdapter.Entry> mihomoEntries = new ArrayList<>();
     private ExitNodePickerAdapter adapter;
     private ExitNodePickerAdapter mihomoAdapter;
+    // getNetworks() is a JNI call into Go; keep it off the main thread.
+    private final CoalescingWorker exitNodesLoader = new CoalescingWorker("nb-exit-node-picker", this::loadExitNodes);
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -86,7 +89,7 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
         });
 
         showNetBird(false);
-        loadExitNodes();
+        exitNodesLoader.request();
         showMihomoStatus(getString(R.string.mihomo_empty), false);
     }
 
@@ -106,6 +109,12 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
         serviceAccessor = null;
     }
 
+    @Override
+    public void onDestroy() {
+        exitNodesLoader.shutdown();
+        super.onDestroy();
+    }
+
     private void showNetBird(boolean switchedBack) {
         boolean wasMihomo = binding.mihomoPanel.getVisibility() == View.VISIBLE;
         binding.netbirdPanel.setVisibility(View.VISIBLE);
@@ -121,7 +130,8 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
     }
 
     private void loadExitNodes() {
-        NetworkArray networks = serviceAccessor != null ? serviceAccessor.getNetworks() : null;
+        ServiceAccessor accessor = serviceAccessor;
+        NetworkArray networks = accessor != null ? accessor.getNetworks() : null;
 
         List<ExitNodePickerAdapter.Entry> nodes = new ArrayList<>();
         boolean anySelected = false;
@@ -137,6 +147,18 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
             }
         }
 
+        final boolean selected = anySelected;
+        SheetExitNodePickerBinding current = binding;
+        View root = current != null ? current.getRoot() : null;
+        if (root != null) {
+            root.post(() -> showExitNodes(nodes, selected));
+        }
+    }
+
+    private void showExitNodes(List<ExitNodePickerAdapter.Entry> nodes, boolean anySelected) {
+        if (binding == null || adapter == null) {
+            return;
+        }
         entries.clear();
         entries.add(new ExitNodePickerAdapter.Entry(
                 null, getString(R.string.exit_node_picker_none), !anySelected));
@@ -149,6 +171,7 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
             if (entry.routeId == null) {
                 deselectActiveExitNode();
             } else if (!entry.selected) {
+                // The engine deselects the previously active exit node.
                 serviceAccessor.selectRoute(entry.routeId);
             }
         } catch (Exception e) {

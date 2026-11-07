@@ -400,7 +400,9 @@ impl CoreManager {
             }
             #[cfg(target_os = "windows")]
             if matches!(*mode, RunningMode::NotRunning) {
-                clash_verge_service_ipc::execution::check_sidecar_available().await?;
+                clash_verge_service_ipc::execution::check_sidecar_available()
+                    .await
+                    .map_err(super::state::explain_core_occupancy)?;
             }
             if !matches!(status, ServiceStatus::SidecarAllowed) {
                 SERVICE_MANAGER.allow_sidecar_for_session()?;
@@ -432,6 +434,10 @@ impl CoreManager {
                     || self.current_core_readiness_generation().is_none()
                 {
                     anyhow::bail!("Sidecar did not become ready");
+                }
+                // A Sidecar that was already running never loaded this generation.
+                if matches!(*mode, RunningMode::NotRunning) {
+                    Config::runtime().await.apply();
                 }
                 tracing::Span::current().record("readiness_generation", self.current_core_readiness_generation());
                 self.apply_proxy_after_start().await
@@ -490,6 +496,7 @@ impl CoreManager {
                 {
                     anyhow::bail!("Sidecar did not become ready after service uninstall");
                 }
+                Config::runtime().await.apply();
                 tracing::Span::current().record("readiness_generation", self.current_core_readiness_generation());
                 self.apply_proxy_after_start().await
             },
@@ -552,12 +559,13 @@ impl CoreManager {
         })?;
         #[cfg(target_os = "macos")]
         crate::utils::resolve::dns::sync_public_dns().await;
-        // At login the app usually beats the network. Leave the write to the network watcher
-        // rather than fail — only if the watcher is actually live; a user toggling while
-        // offline still fails fast.
+        // Only automatic restores can wait for the watcher; explicit requests must report failure.
         #[cfg(target_os = "macos")]
-        if crate::core::network_watch::is_armed()
-            && !crate::utils::resolve::is_resolve_done()
+        let defer_until_network = crate::core::network_watch::is_armed()
+            && crate::core::notification::what_was_asked()
+                == crate::core::notification::FailedOperation::SystemProxyRestore;
+        #[cfg(target_os = "macos")]
+        if defer_until_network
             && Config::verge()
                 .await
                 .latest_arc()
@@ -572,7 +580,20 @@ impl CoreManager {
             );
             return Ok(());
         }
+        #[cfg(not(target_os = "macos"))]
         proxy_control::apply().await?;
+        #[cfg(target_os = "macos")]
+        if let Err(error) = proxy_control::apply().await {
+            if defer_until_network && proxy_control::is_missing_network_service_failure(&error) {
+                logging!(
+                    debug,
+                    Type::Core,
+                    "network service disappeared; the system proxy waits for its return"
+                );
+                return Ok(());
+            }
+            return Err(error);
+        }
         if !expectation.is_valid(
             self.get_running_mode().as_ref(),
             self.current_core_readiness_generation(),
@@ -651,7 +672,11 @@ impl CoreManager {
                 {
                     run_service_start_with_sidecar_fallback(
                         || self.start_core_by_service(),
-                        clash_verge_service_ipc::execution::check_sidecar_available,
+                        || async {
+                            clash_verge_service_ipc::execution::check_sidecar_available()
+                                .await
+                                .map_err(super::state::explain_core_occupancy)
+                        },
                         |error| self.start_sidecar_after_service_failure(error),
                         |reason| {
                             crate::core::runstate::RUN_STATE
@@ -696,7 +721,10 @@ impl CoreManager {
             ServiceHealth::VersionMismatch => "registered service is unavailable or incompatible".to_owned(),
             _ => return Ok(()),
         };
-        if let Err(error) = clash_verge_service_ipc::execution::check_sidecar_available().await {
+        if let Err(error) = clash_verge_service_ipc::execution::check_sidecar_available()
+            .await
+            .map_err(super::state::explain_core_occupancy)
+        {
             logging!(
                 warn,
                 Type::Core,
@@ -895,29 +923,34 @@ impl CoreManager {
         AsyncHandler::spawn(|| async move {
             let manager = Self::global();
             let started = Instant::now();
-            loop {
+            use crate::utils::retry::{RetryError, RetryPolicy, retry};
+            let attempts = std::num::NonZeroUsize::MIN.saturating_add(
+                (timing::SERVICE_HANDOFF_WINDOW.as_millis() / timing::SERVICE_HANDOFF_INTERVAL.as_millis()) as usize,
+            );
+            let _ = retry(RetryPolicy::fixed(attempts, std::time::Duration::ZERO), |_| async {
                 if started.elapsed() >= timing::SERVICE_HANDOFF_WINDOW {
                     logging!(
                         info,
                         Type::Core,
                         "service handoff window elapsed; staying in sidecar mode"
                     );
-                    break;
+                    return Ok(());
                 }
+                // The window is checked before waiting, including the final handoff attempt.
                 tokio::time::sleep(timing::SERVICE_HANDOFF_INTERVAL).await;
-
                 if !matches!(*manager.get_running_mode(), RunningMode::Sidecar) {
-                    break;
+                    return Ok(());
                 }
                 match manager.try_handoff_sidecar_to_service().await {
-                    HandoffOutcome::Done => break,
+                    HandoffOutcome::Done => Ok(()),
                     HandoffOutcome::Failed => {
                         logging!(warn, Type::Core, "handoff attempt failed; staying in sidecar mode");
-                        break;
+                        Ok(())
                     }
-                    HandoffOutcome::NotReady => {}
+                    HandoffOutcome::NotReady => Err(RetryError::Retry(())),
                 }
-            }
+            })
+            .await;
             manager.handoff_watcher_running.store(false, Ordering::Release);
         });
     }

@@ -1,6 +1,7 @@
 use crate::config::Config;
+use crate::core::lightweight;
+use crate::core::notify::NoticeStatus;
 use crate::core::{CoreManager, handle};
-use crate::module::lightweight;
 use crate::utils;
 use crate::utils::window_manager::WindowManager;
 use anyhow::{Context as _, anyhow};
@@ -129,9 +130,7 @@ pub async fn open_or_close_dashboard() {
     logging!(info, Type::Window, "Window toggle result: {result:?}");
 }
 
-pub async fn quit() -> clash_verge_signal::ShutdownOutcome {
-    logging!(debug, Type::System, "启动退出流程");
-    // 设置退出标志
+pub(crate) async fn run_exit_cleanup_flow(stop_failed_notice: NoticeStatus) -> CleanupResult {
     handle::Handle::global().set_is_exiting();
 
     Config::apply_all_and_save_file().await;
@@ -160,17 +159,22 @@ pub async fn quit() -> clash_verge_signal::ShutdownOutcome {
                 crate::utils::resolve::dns::sync_public_dns().await;
             }
         }
-        handle::Handle::notice_message(
-            "app_quit::core_stop_failed",
-            cleanup_result.stop_error.unwrap_or_default(),
+        handle::Handle::notice(
+            stop_failed_notice,
+            cleanup_result.stop_error.clone().unwrap_or_default(),
         );
-        return clash_verge_signal::ShutdownOutcome::Canceled;
     }
+
+    cleanup_result
+}
+
+pub async fn quit() {
+    logging!(debug, Type::System, "启动退出流程");
+    let cleanup_result = run_exit_cleanup_flow(NoticeStatus::AppQuitCoreStopFailed).await;
 
     utils::server::shutdown_embedded_server();
     let app_handle = handle::Handle::app_handle();
     app_handle.exit(if cleanup_result.all_success { 0 } else { 1 });
-    clash_verge_signal::ShutdownOutcome::Committed
 }
 
 pub async fn clean_async() -> CleanupResult {
@@ -300,7 +304,7 @@ async fn clean_session_ending_best_effort() -> CleanupResult {
 
 #[cfg(target_os = "macos")]
 pub async fn hide() {
-    use crate::module::lightweight::add_light_weight_timer;
+    use crate::core::lightweight::add_light_weight_timer;
 
     let enable_auto_light_weight_mode = Config::verge()
         .await

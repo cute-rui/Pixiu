@@ -107,13 +107,18 @@ class ViewModel: ObservableObject {
     // Debug
     @Published var traceLogsEnabled: Bool {
         didSet {
+            let logLevel = traceLogsEnabled ? "TRACE" : "INFO"
+            UserDefaults.standard.set(logLevel, forKey: "logLevel")
+            UserDefaults.standard.synchronize()
+            // Turning trace on reaches a running tunnel at once. Anything else waits for
+            // the next connect, which is what the alert says.
+            if traceLogsEnabled && networkExtensionAdapter.enableTraceLogs() {
+                return
+            }
             self.showLogLevelChangedAlert = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 self.showLogLevelChangedAlert = false
             }
-            let logLevel = traceLogsEnabled ? "TRACE" : "INFO"
-            UserDefaults.standard.set(logLevel, forKey: "logLevel")
-            UserDefaults.standard.synchronize()
         }
     }
 
@@ -603,6 +608,10 @@ class ViewModel: ObservableObject {
             connectPressed = false
             disconnectPressed = false
             newState = .connected
+        case .reasserting:
+            connectPressed = false
+            disconnectPressed = false
+            newState = .connecting
         case .connecting:
             // A connecting extension after a disconnect request represents an On Demand
             // reconnect, so the stale disconnect intent must no longer override it.
@@ -650,7 +659,8 @@ class ViewModel: ObservableObject {
         case .connected:
             extensionStateText = isInternetConnected ? "Connected" : "Offline"
         case .connecting:
-            extensionStateText = "Connecting..."
+            extensionStateText = managementStatus == .noNetwork ? "No network" :
+                (extensionState == .reasserting ? "Reconnecting..." : "Connecting...")
         case .disconnecting:
             extensionStateText = "Disconnecting..."
         case .disconnected:
@@ -772,8 +782,8 @@ class ViewModel: ObservableObject {
 
     /// Applies a newly loaded extension status and updates dependent UI state.
     /// - Parameter status: The current status reported by Network Extension.
-    private func applyExtensionStatus(_ status: NEVPNStatus) {
-        let knownStatuses: Set<NEVPNStatus> = [.connected, .disconnected, .connecting, .disconnecting]
+    func applyExtensionStatus(_ status: NEVPNStatus) {
+        let knownStatuses: Set<NEVPNStatus> = [.connected, .disconnected, .connecting, .reasserting, .disconnecting]
         guard knownStatuses.contains(status) else { return }
 
         let priorState = extensionState
