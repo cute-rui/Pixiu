@@ -1,8 +1,18 @@
 name: go
 
+# Pushes to main are built by prerelease.yml so each commit is packaged once.
+# Pull requests, other branches, and manual runs still test and upload the CLI.
 on:
-  push:
   pull_request:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   linux:
@@ -13,6 +23,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.7"
+          cache-dependency-path: |
+            bridge/go.sum
+            netbird/go.sum
+            cli/go.sum
       - name: bridge
         working-directory: bridge
         run: go test ./...
@@ -28,6 +42,24 @@ jobs:
         run: |
           go test ./...
           go build -o pixiu .
+      - name: stage cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          os=$(go env GOOS)
+          arch=$(go env GOARCH)
+          if [ "$os" != "linux" ] || [ "$arch" != "amd64" ]; then
+            echo "expected linux/amd64, built ${os}/${arch}" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp cli/pixiu dist/pixiu-linux-amd64
+          test -f dist/pixiu-linux-amd64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixiu-cli-linux-amd64
+          path: dist/pixiu-linux-amd64
+          if-no-files-found: error
 
   macos:
     name: macos
@@ -38,6 +70,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.7"
+          cache-dependency-path: |
+            bridge/go.sum
+            netbird/go.sum
+            cli/go.sum
       - name: cli
         working-directory: cli
         env:
@@ -45,6 +81,24 @@ jobs:
         run: |
           go test ./...
           go build -o pixiu .
+      - name: stage cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          os=$(go env GOOS)
+          arch=$(go env GOARCH)
+          if [ "$os" != "darwin" ] || [ "$arch" != "arm64" ]; then
+            echo "expected darwin/arm64, built ${os}/${arch}" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp cli/pixiu dist/pixiu-darwin-arm64
+          test -f dist/pixiu-darwin-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixiu-cli-darwin-arm64
+          path: dist/pixiu-darwin-arm64
+          if-no-files-found: error
 
   windows:
     name: windows
@@ -55,6 +109,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.7"
+          cache-dependency-path: |
+            bridge/go.sum
+            netbird/go.sum
+            cli/go.sum
       - name: cli
         working-directory: cli
         env:
@@ -62,3 +120,21 @@ jobs:
         run: |
           go test ./...
           go build -o pixiu.exe .
+      - name: stage cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          os=$(go env GOOS)
+          arch=$(go env GOARCH)
+          if [ "$os" != "windows" ] || [ "$arch" != "amd64" ]; then
+            echo "expected windows/amd64, built ${os}/${arch}" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp cli/pixiu.exe dist/pixiu-windows-amd64.exe
+          test -f dist/pixiu-windows-amd64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixiu-cli-windows-amd64
+          path: dist/pixiu-windows-amd64.exe
+          if-no-files-found: error

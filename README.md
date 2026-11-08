@@ -24,7 +24,7 @@ cd ../netbird && go test -run 'Overlay|PacketDestination|ReadDiverts' ./client/i
 cd ../cli && go test ./... && go build -o pixiu .
 ```
 
-Verge uses Rust 1.98.1 (`verge/rust-toolchain.toml`). From `verge/`:
+Verge uses Rust 1.99.1 (`verge/rust-toolchain.toml`, crate `rust-version` 1.99). From `verge/`:
 
 ```sh
 pnpm install
@@ -39,6 +39,22 @@ cd android-client
 ./build-android-lib.sh
 ./gradlew assembleDebug
 ```
+
+## Installers
+
+Pull requests, manual runs, and pushes to branches other than `main` upload installers from the `verge`, `go`, and `android` workflows:
+
+| Actions artifact | Installer |
+| --- | --- |
+| `pixiu-desktop-linux-amd64` | `.deb` and `.rpm` |
+| `pixiu-desktop-macos-arm64` | `.dmg` |
+| `pixiu-desktop-windows-amd64` | NSIS `*setup*.exe` |
+| `pixiu-cli-linux-amd64` | `pixiu-linux-amd64` |
+| `pixiu-cli-darwin-arm64` | `pixiu-darwin-arm64` |
+| `pixiu-cli-windows-amd64` | `pixiu-windows-amd64.exe` |
+| `pixiu-android-apk` | debug `pixiu-android.apk` |
+
+A push to `main`, or **Actions → prerelease → Run workflow** on `main`, builds those same installers once and replaces the rolling prerelease. The tag is `prerelease` and the title is `Pixiu main prerelease`. It stays a prerelease and is not marked Latest. If `TAURI_SIGNING_PRIVATE_KEY` is unset, the Verge build is unsigned and still succeeds.
 
 ## CLI
 

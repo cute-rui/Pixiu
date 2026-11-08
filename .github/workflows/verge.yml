@@ -1,12 +1,31 @@
 name: verge
 
+# Pushes to main are built by prerelease.yml so each commit is packaged once.
+# Pull requests, other branches, and manual runs still build and upload installers.
 on:
-  push:
   pull_request:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
+  scripts:
+    name: installer scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: test installer scripts
+        run: bash .github/scripts/installer-workflows_test.sh
+
   unsigned:
     name: unsigned (${{ matrix.target }})
+    needs: scripts
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -14,13 +33,25 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            artifact: pixiu-desktop-linux-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
+            artifact: pixiu-desktop-macos-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            artifact: pixiu-desktop-windows-amd64
     steps:
       - uses: actions/checkout@v4
+      - name: free disk space
+        if: runner.os == 'Linux'
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+          df -h
       - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "verge -> target"
+          shared-key: ${{ matrix.target }}
       - uses: pnpm/action-setup@v4
         with:
           version: 12.18.0
@@ -33,7 +64,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
       - name: install
         working-directory: verge
         run: pnpm install --frozen-lockfile
@@ -42,6 +73,40 @@ jobs:
         run: pnpm run prebuild ${{ matrix.target }}
       - name: unsigned build
         working-directory: verge
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          # Empty when the secret is absent. Upstream Verge workflows use
+          # TAURI_PRIVATE_KEY; either name may sign updater artifacts.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || secrets.TAURI_KEY_PASSWORD }}
+          NODE_OPTIONS: --max-old-space-size=4096
         run: |
-          node -e "const fs=require('fs'); const p='src-tauri/tauri.conf.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.bundle.createUpdaterArtifacts=false; fs.writeFileSync(p, JSON.stringify(j,null,2));"
-          pnpm exec tauri build --target ${{ matrix.target }}
+          set -euo pipefail
+          key="${TAURI_SIGNING_PRIVATE_KEY:-}"
+          key="${key#"${key%%[![:space:]]*}"}"
+          key="${key%"${key##*[![:space:]]}"}"
+          args=(--target "$TARGET")
+          if [ -z "$key" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is not set. Building unsigned installers."
+            unset TAURI_SIGNING_PRIVATE_KEY
+            unset TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+            printf '%s\n' '{"bundle":{"createUpdaterArtifacts":false}}' >"$RUNNER_TEMP/tauri-unsigned.json"
+            args+=(--no-sign --config "$RUNNER_TEMP/tauri-unsigned.json")
+          else
+            echo "TAURI_SIGNING_PRIVATE_KEY is set. Updater signatures will be generated."
+          fi
+          pnpm exec -- tauri build "${args[@]}"
+      - name: stage installers
+        working-directory: verge
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          OUT: ${{ github.workspace }}/dist
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/stage-installers.sh"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0

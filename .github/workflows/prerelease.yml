@@ -1,0 +1,75 @@
+name: prerelease
+
+# One rolling prerelease for main. Not a stable release and not Latest.
+# Tag: prerelease
+# Title: Pixiu main prerelease
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixiu-main-prerelease
+  cancel-in-progress: true
+
+jobs:
+  main:
+    name: main
+    runs-on: ubuntu-latest
+    steps:
+      - name: package main only
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "prerelease packages the main branch. Run this workflow on main." >&2
+          exit 1
+
+  desktop:
+    name: desktop
+    needs: main
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/verge.yml
+    secrets: inherit
+
+  cli:
+    name: cli
+    needs: main
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/go.yml
+
+  android:
+    name: android
+    needs: main
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/android.yml
+
+  publish:
+    name: publish prerelease
+    needs: [desktop, cli, android]
+    if: success() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: test prerelease publisher
+        run: bash .github/scripts/installer-workflows_test.sh
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pixiu-*
+          path: release-assets
+          merge-multiple: true
+      - name: publish rolling prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/publish-rolling-prerelease.sh release-assets
