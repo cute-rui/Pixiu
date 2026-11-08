@@ -64,8 +64,26 @@ case " $* " in
     ;;
 esac
 if [ "$1" = "api" ]; then
-  printf '%s\n' "${FAKE_MAIN_SHA:?}"
-  exit 0
+  case " $* " in
+    *"/commits/main"*)
+      printf '%s\n' "${FAKE_MAIN_SHA:?}"
+      exit 0
+      ;;
+    *"/releases/latest"*)
+      if [ -n "${FAKE_LATEST_TAG:-}" ]; then
+        printf '%s\n' "$FAKE_LATEST_TAG"
+        exit 0
+      fi
+      echo "not found" >&2
+      exit 1
+      ;;
+    *"/releases/tags/"*)
+      printf 'https://github.com/cute-rui/Pixiu/releases/tag/prerelease\ttrue\tfalse\t%s\n' "${FAKE_MAIN_SHA:?}"
+      exit 0
+      ;;
+  esac
+  echo "unexpected api: $*" >&2
+  exit 1
 fi
 if [ "$1" = "release" ] && [ "$2" = "view" ]; then
   if [ "${FAKE_RELEASE_EXISTS:-0}" = "1" ]; then
@@ -118,6 +136,7 @@ run_publish() {
     GITHUB_SERVER_URL="https://github.com" \
     FAKE_MAIN_SHA="${FAKE_MAIN_SHA:-abc123}" \
     FAKE_RELEASE_EXISTS="${FAKE_RELEASE_EXISTS:-0}" \
+    FAKE_LATEST_TAG="${FAKE_LATEST_TAG:-}" \
     bash "$publish" "$1"
 }
 
@@ -167,6 +186,15 @@ PATH="$bin:$PATH" \
   bash "$publish" "$assets"
 if [ -s "$GH_ARGS_NUL" ]; then
   echo "FAIL: non-main ref invoked gh" >&2
+  fail=1
+fi
+
+set +e
+FAKE_LATEST_TAG=prerelease FAKE_RELEASE_EXISTS=1 FAKE_MAIN_SHA=abc123 run_publish "$assets"
+marked_latest=$?
+set -e
+if [ "$marked_latest" -eq 0 ]; then
+  echo "FAIL: a release marked Latest should fail" >&2
   fail=1
 fi
 

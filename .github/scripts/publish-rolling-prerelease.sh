@@ -131,17 +131,23 @@ gh release create "$tag" \
   --notes-file "$notes" \
   "${files[@]}"
 
-flags=$(gh release view "$tag" --repo "$repo" \
-  --json url,isPrerelease,isDraft,isLatest,targetCommitish \
-  --jq '[.url, .isPrerelease, .isDraft, .isLatest, .targetCommitish] | @tsv')
-url=$(printf '%s\n' "$flags" | awk -F '\t' '{print $1}')
-is_pre=$(printf '%s\n' "$flags" | awk -F '\t' '{print $2}')
-is_draft=$(printf '%s\n' "$flags" | awk -F '\t' '{print $3}')
-is_latest=$(printf '%s\n' "$flags" | awk -F '\t' '{print $4}')
-target_sha=$(printf '%s\n' "$flags" | awk -F '\t' '{print $5}')
+# gh release view --json has no isLatest on the GitHub-hosted CLI.
+# /releases/latest is the stable latest and 404s when every release is a prerelease.
+meta=$(gh api "repos/${repo}/releases/tags/${tag}" \
+  --jq '[.html_url, .prerelease, .draft, .target_commitish] | @tsv')
+url=$(printf '%s\n' "$meta" | awk -F '\t' '{print $1}')
+is_pre=$(printf '%s\n' "$meta" | awk -F '\t' '{print $2}')
+is_draft=$(printf '%s\n' "$meta" | awk -F '\t' '{print $3}')
+target_sha=$(printf '%s\n' "$meta" | awk -F '\t' '{print $4}')
+latest_tag=""
+if latest_tag=$(gh api "repos/${repo}/releases/latest" --jq .tag_name 2>/dev/null); then
+  :
+else
+  latest_tag=""
+fi
 
-if [ "$is_pre" != "true" ] || [ "$is_draft" != "false" ] || [ "$is_latest" != "false" ] || [ "$target_sha" != "$sha" ]; then
-  echo "Published release is not the rolling main prerelease (${flags})." >&2
+if [ "$is_pre" != "true" ] || [ "$is_draft" != "false" ] || [ "$target_sha" != "$sha" ] || [ "$latest_tag" = "$tag" ]; then
+  echo "Published release is not the rolling main prerelease (${meta} latest=${latest_tag})." >&2
   exit 1
 fi
 
