@@ -83,9 +83,7 @@ pnpm run prebuild --force  # Re-download and overwrite Mihomo core and service b
 
 ### Prepare the Development Service Source
 
-`pnpm dev` builds the development service from a sibling checkout of [`clash-verge-service-ipc`](https://github.com/clash-verge-rev/clash-verge-service-ipc). The binaries downloaded by `pnpm prebuild` do not replace this source checkout.
-
-Check the `clash_verge_service_ipc` dependency in [`src-tauri/Cargo.toml`](src-tauri/Cargo.toml), then clone the service repository alongside `clash-verge-rev` and check out the matching tag. If the sibling directory already exists, reuse it and check its version rather than overwriting it. Without this checkout, `pnpm dev` fails when it tries to access `../clash-verge-service-ipc/Cargo.toml`.
+`pnpm dev` builds the development service from [`crates/clash-verge-service-ipc`](crates/clash-verge-service-ipc). `pnpm prebuild` compiles that crate because `clash_verge_service_ipc` is a path dependency.
 
 ### Run the Development Server
 

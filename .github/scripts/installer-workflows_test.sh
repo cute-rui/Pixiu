@@ -30,9 +30,9 @@ mkdir -p "$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/deb"
 mkdir -p "$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/dmg"
 mkdir -p "$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/nsis/nested"
 mkdir -p "$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/ignore"
-printf 'deb' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/deb/Clash Verge_2.6.0_amd64.deb"
-printf 'dmg' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/dmg/Clash Verge_2.6.0_aarch64.dmg"
-printf 'exe' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/nsis/nested/Clash Verge_2.6.0_x64-setup.exe"
+printf 'deb' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/deb/Pixiu_2.6.0_amd64.deb"
+printf 'dmg' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/dmg/Pixiu_2.6.0_aarch64.dmg"
+printf 'exe' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/nsis/nested/Pixiu_2.6.0_x64-setup.exe"
 printf 'nope' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/ignore/notes.txt"
 printf 'lib' >"$tmp/proj/target/x86_64-unknown-linux-gnu/release/bundle/nsis/helper.dll"
 
@@ -41,9 +41,9 @@ out="$tmp/out"
   cd "$tmp/proj"
   TARGET=x86_64-unknown-linux-gnu OUT="$out" bash "$stage"
 )
-assert_ok test -f "$out/Clash Verge_2.6.0_amd64.deb"
-assert_ok test -f "$out/Clash Verge_2.6.0_aarch64.dmg"
-assert_ok test -f "$out/Clash Verge_2.6.0_x64-setup.exe"
+assert_ok test -f "$out/Pixiu_2.6.0_amd64.deb"
+assert_ok test -f "$out/Pixiu_2.6.0_aarch64.dmg"
+assert_ok test -f "$out/Pixiu_2.6.0_x64-setup.exe"
 assert_ok test ! -e "$out/notes.txt"
 assert_ok test ! -e "$out/helper.dll"
 
@@ -142,10 +142,10 @@ run_publish() {
 
 assets="$tmp/assets"
 mkdir -p "$assets/pixiu-desktop-linux-amd64"
-printf 'd' >"$assets/pixiu-desktop-linux-amd64/Clash Verge_2.6.0_amd64.deb"
-printf 'r' >"$assets/Clash Verge-2.6.0-1.x86_64.rpm"
-printf 'm' >"$assets/Clash Verge_2.6.0_aarch64.dmg"
-printf 'e' >"$assets/Clash Verge_2.6.0_x64-setup.exe"
+printf 'd' >"$assets/pixiu-desktop-linux-amd64/Pixiu_2.6.0_amd64.deb"
+printf 'r' >"$assets/Pixiu-2.6.0-1.x86_64.rpm"
+printf 'm' >"$assets/Pixiu_2.6.0_aarch64.dmg"
+printf 'e' >"$assets/Pixiu_2.6.0_x64-setup.exe"
 printf 'c' >"$assets/pixiu-linux-amd64"
 printf 'w' >"$assets/pixiu-windows-amd64.exe"
 printf 'a' >"$assets/pixiu-darwin-arm64"
@@ -161,7 +161,7 @@ assert_ok has_arg "--target"
 assert_ok has_arg "abc123"
 assert_ok has_arg "prerelease"
 assert_ok has_arg "Pixiu main prerelease"
-assert_ok has_arg_suffix "/Clash Verge_2.6.0_amd64.deb"
+assert_ok has_arg_suffix "/Pixiu_2.6.0_amd64.deb"
 
 FAKE_RELEASE_EXISTS=0 FAKE_MAIN_SHA=abc123 run_publish "$assets"
 if has_arg "delete"; then
@@ -198,7 +198,7 @@ if [ "$marked_latest" -eq 0 ]; then
   fail=1
 fi
 
-rm -f "$assets/Clash Verge_2.6.0_aarch64.dmg"
+rm -f "$assets/Pixiu_2.6.0_aarch64.dmg"
 set +e
 FAKE_RELEASE_EXISTS=1 FAKE_MAIN_SHA=abc123 run_publish "$assets"
 incomplete=$?

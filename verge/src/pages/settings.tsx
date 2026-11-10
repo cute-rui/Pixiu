@@ -21,7 +21,7 @@ const SettingPage = () => {
   }
 
   const toGithubRepo = useLockFn(() =>
-    openExternalUrl('https://github.com/clash-verge-rev/clash-verge-rev').catch(
+    openExternalUrl('https://github.com/cute-rui/Pixiu').catch(
       onError,
     ),
   )

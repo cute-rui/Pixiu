@@ -1,14 +1,18 @@
 [package]
 name = "clash-verge"
 version = "2.6.0"
-description = "clash verge"
+description = "Pixiu"
 authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
 license = "GPL-3.0-only"
 repository = "https://github.com/clash-verge-rev/clash-verge-rev.git"
-default-run = "clash-verge"
+default-run = "pixiu"
 build = "build.rs"
 edition = "2024"
 rust-version = "1.99"
+
+[[bin]]
+name = "pixiu"
+path = "src/main.rs"
 
 [lib]
 name = "app_lib"
@@ -26,7 +30,7 @@ clippy = ["tauri/test"]
 perf-harness = ["dep:tauri-plugin-wdio-webdriver"]
 
 [package.metadata.bundle]
-identifier = "io.github.clash-verge-rev.clash-verge-rev"
+identifier = "io.github.cute-rui.pixiu"
 
 [build-dependencies]
 tauri-build = { version = "2.7.4", features = [] }
@@ -95,7 +99,7 @@ tracing = { workspace = true }
 tauri-plugin-devtools = { version = "2.2.3", optional = true }
 tauri-plugin-mihomo = { git = "https://github.com/clash-verge-rev/tauri-plugin-mihomo", rev = "7a03d16f4d39b1bb885b7babe66b9e153e34b615" }
 async-trait = "0.1.92"
-clash_verge_service_ipc = { git = "https://github.com/clash-verge-rev/clash-verge-service-ipc.git", tag = "v2.7.7", version = "2.7.7", features = [
+clash_verge_service_ipc = { path = "../crates/clash-verge-service-ipc", version = "2.7.7", features = [
   "client",
 ] }
 arc-swap = "1.9.3"

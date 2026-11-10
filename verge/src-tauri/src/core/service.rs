@@ -258,10 +258,6 @@ fn macos_service_install_markers() -> Vec<String> {
             "/Library/PrivilegedHelperTools/{}.bundle",
             clash_verge_service_ipc::MACOS_SERVICE_ID
         ),
-        #[cfg(not(feature = "verge-dev"))]
-        "/Library/LaunchDaemons/io.github.clashverge.helper.plist".to_owned(),
-        #[cfg(not(feature = "verge-dev"))]
-        "/Library/PrivilegedHelperTools/io.github.clashverge.helper".to_owned(),
     ]
 }
 
@@ -471,7 +467,7 @@ where
         .with_context(|| format!("failed to open development Service core source {}", source.display()))?;
 
     let staging_directory = home
-        .join("Applications/.clash-verge-rev-dev")
+        .join("Applications/.pixiu-dev")
         .join(staging_directory_name);
     std::fs::create_dir_all(&staging_directory).with_context(|| {
         format!(
@@ -652,8 +648,8 @@ fn ensure_uninstall_success(status: &std::process::ExitStatus) -> Result<()> {
 fn uninstall_service() -> Result<()> {
     logging!(info, Type::Service, "uninstall service");
 
-    let uninstall_path = uninstaller_tool_path("clash-verge-service-uninstall.exe", || {
-        Ok(dirs::service_path()?.with_file_name("clash-verge-service-uninstall.exe"))
+    let uninstall_path = uninstaller_tool_path("pixiu-service-uninstall.exe", || {
+        Ok(dirs::service_path()?.with_file_name("pixiu-service-uninstall.exe"))
     })?;
 
     let status = run_maybe_elevated(&uninstall_path, true)?;
@@ -664,8 +660,8 @@ fn uninstall_service() -> Result<()> {
 fn uninstall_service() -> Result<()> {
     logging!(info, Type::Service, "uninstall service");
 
-    let uninstall_path = uninstaller_tool_path("clash-verge-service-uninstall", || {
-        Ok(tauri::utils::platform::current_exe()?.with_file_name("clash-verge-service-uninstall"))
+    let uninstall_path = uninstaller_tool_path("pixiu-service-uninstall", || {
+        Ok(tauri::utils::platform::current_exe()?.with_file_name("pixiu-service-uninstall"))
     })?;
 
     let elevator = crate::utils::help::linux_elevator();
@@ -712,8 +708,8 @@ fn linux_running_as_root() -> bool {
 fn uninstall_service() -> Result<()> {
     logging!(info, Type::Service, "uninstall service");
 
-    let uninstall_path = uninstaller_tool_path("clash-verge-service-uninstall", || {
-        Ok(dirs::service_path()?.with_file_name("clash-verge-service-uninstall"))
+    let uninstall_path = uninstaller_tool_path("pixiu-service-uninstall", || {
+        Ok(dirs::service_path()?.with_file_name("pixiu-service-uninstall"))
     })?;
 
     let uninstall_path = macos_service_tool_path(&uninstall_path)?;
@@ -750,7 +746,7 @@ fn install_service() -> Result<()> {
 }
 
 fn invoke_service_install(cores: &[clash_verge_service_ipc::management::CoreSource], core_only: bool) -> Result<()> {
-    let name = format!("clash-verge-service-install{}", std::env::consts::EXE_SUFFIX);
+    let name = format!("pixiu-service-install{}", std::env::consts::EXE_SUFFIX);
     let installer = packaged_service_tool_path(&name, || {
         #[cfg(target_os = "linux")]
         let executable = tauri::utils::platform::current_exe()?;
@@ -852,7 +848,7 @@ pub(super) async fn stage_runtime_by_service(config_file: &Path) -> Result<Stage
 
     let response = clash_verge_service_ipc::stage_runtime(&credentials, &session, &runtime)
         .await
-        .context("无法连接到Clash Verge Service")?;
+        .context("无法连接到Pixiu Service")?;
     if response.code > 0 {
         return Ok(StageRequest::Refused {
             code: response.code,
@@ -862,7 +858,7 @@ pub(super) async fn stage_runtime_by_service(config_file: &Path) -> Result<Stage
     response
         .data
         .map(StageRequest::Answered)
-        .context("Clash Verge Service 未返回运行时暂存结果")
+        .context("Pixiu Service 未返回运行时暂存结果")
 }
 
 #[derive(Debug)]
@@ -923,7 +919,7 @@ pub(super) async fn start_with_existing_service(config_file: &Path) -> Result<()
         Err(error) => {
             tracing::Span::current().record("outcome", "ipc-unreachable");
             start_owner_monitor();
-            return Err(error).context("无法连接到Clash Verge Service");
+            return Err(error).context("无法连接到Pixiu Service");
         }
     };
 
@@ -958,7 +954,7 @@ pub(super) async fn start_with_existing_service(config_file: &Path) -> Result<()
         ));
     }
 
-    let result = response.data.context("Clash Verge Service 未返回会话信息")?;
+    let result = response.data.context("Pixiu Service 未返回会话信息")?;
     tracing::Span::current().record("generation", result.session.generation);
     let capabilities = probe_service_capabilities().await;
     tracing::Span::current().record("staging", capabilities.runtime_staging);
@@ -1016,7 +1012,7 @@ pub(super) async fn get_clash_logs_by_service() -> Result<Vec<String>> {
         clash_verge_service_ipc::get_clash_logs(&credentials)
     })
     .await;
-    let response = response.context("无法连接到Clash Verge Service")?;
+    let response = response.context("无法连接到Pixiu Service")?;
 
     if response.code > 0 {
         if response.code == clash_verge_service_ipc::ServiceErrorCode::NotActive as u16 {
@@ -1035,7 +1031,7 @@ pub(crate) async fn get_clash_log_snapshot_by_service() -> Result<String> {
         clash_verge_service_ipc::get_clash_log_snapshot(&credentials)
     })
     .await;
-    let response = response.context("无法连接到Clash Verge Service")?;
+    let response = response.context("无法连接到Pixiu Service")?;
     if response.code > 0 {
         if response.code == clash_verge_service_ipc::ServiceErrorCode::NotActive as u16 {
             recover_after_owner_loss(generation, OwnerRecoveryReason::Displaced, None).await;
@@ -1403,7 +1399,7 @@ async fn read_chunk(
     };
     let response = clash_verge_service_ipc::read_runtime_file(credentials, session, &request)
         .await
-        .context("无法连接到Clash Verge Service")?;
+        .context("无法连接到Pixiu Service")?;
     if response.code == ServiceErrorCode::NotActive as u16
         || response.code == ServiceErrorCode::StaleOwnerSession as u16
     {
@@ -1562,7 +1558,7 @@ pub(super) async fn stop_core_by_service() -> Result<()> {
         Ok(response) => response,
         Err(error) => {
             start_owner_monitor();
-            return Err(error).context("无法连接到Clash Verge Service");
+            return Err(error).context("无法连接到Pixiu Service");
         }
     };
 
@@ -1600,7 +1596,7 @@ pub(crate) async fn update_writer_by_service(writer: &WriterConfig) -> Result<()
     let session = active_service_session()?;
     let response = clash_verge_service_ipc::update_writer(&credentials, &session, writer)
         .await
-        .context("无法连接到Clash Verge Service")?;
+        .context("无法连接到Pixiu Service")?;
     if response.code > 0 {
         logging!(
             warn,
@@ -1626,7 +1622,7 @@ pub(super) async fn set_system_proxy_by_service_with_session(
     let credentials = current_owner_credentials()?;
     let response = clash_verge_service_ipc::set_system_proxy(&credentials, session, proxy)
         .await
-        .context("无法连接到Clash Verge Service")?;
+        .context("无法连接到Pixiu Service")?;
     if response.code > 0 {
         logging!(
             warn,
@@ -1637,7 +1633,7 @@ pub(super) async fn set_system_proxy_by_service_with_session(
         );
         bail!(response.message);
     }
-    response.data.context("Clash Verge Service 未返回系统代理结果")
+    response.data.context("Pixiu Service 未返回系统代理结果")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2182,12 +2178,12 @@ mod tests {
     }
 
     fn staging_directory(home: &Path) -> PathBuf {
-        home.join("Applications/.clash-verge-rev-dev/service-core")
+        home.join("Applications/.pixiu-dev/service-core")
     }
 
     #[cfg(unix)]
     fn service_tools_staging_directory(home: &Path) -> PathBuf {
-        home.join("Applications/.clash-verge-rev-dev/service-tools")
+        home.join("Applications/.pixiu-dev/service-tools")
     }
 
     #[cfg(unix)]
@@ -2211,7 +2207,7 @@ mod tests {
     fn nondevelopment_service_core_selection_preserves_sibling_without_staging() -> anyhow::Result<()> {
         let root = TestDirectory::new("release-path")?;
         let home = root.path().join("home");
-        let source = root.path().join("target/debug/verge-mihomo");
+        let source = root.path().join("target/debug/pixiu-mihomo");
 
         let selected = service_core_path_for(&source, Some(&home), false)?;
 
@@ -2227,14 +2223,14 @@ mod tests {
 
         let root = TestDirectory::new("development-path")?;
         let home = root.path().join("home");
-        let source = root.path().join("verge-mihomo");
+        let source = root.path().join("pixiu-mihomo");
         std::fs::write(&source, b"development core")?;
 
         let selected = service_core_path_for(&source, Some(&home), true)?;
 
         assert_eq!(
             selected,
-            home.join("Applications/.clash-verge-rev-dev/service-core/verge-mihomo")
+            home.join("Applications/.pixiu-dev/service-core/pixiu-mihomo")
         );
         assert_eq!(std::fs::read(&selected)?, b"development core");
         let metadata = std::fs::symlink_metadata(&selected)?;
@@ -2250,14 +2246,14 @@ mod tests {
 
         let root = TestDirectory::new("development-service-tool")?;
         let home = root.path().join("home");
-        let source = root.path().join("clash-verge-service-install");
+        let source = root.path().join("pixiu-service-install");
         std::fs::write(&source, b"development installer")?;
 
         let selected = service_tool_path_for(&source, Some(&home), true)?;
 
         assert_eq!(
             selected,
-            service_tools_staging_directory(&home).join("clash-verge-service-install")
+            service_tools_staging_directory(&home).join("pixiu-service-install")
         );
         assert_eq!(std::fs::read(&selected)?, b"development installer");
         assert_ne!(std::fs::metadata(&selected)?.permissions().mode() & 0o111, 0);
@@ -2269,12 +2265,12 @@ mod tests {
     fn development_service_core_refresh_atomically_replaces_bytes() -> anyhow::Result<()> {
         let root = TestDirectory::new("refresh")?;
         let home = root.path().join("home");
-        let source = root.path().join("verge-mihomo");
+        let source = root.path().join("pixiu-mihomo");
         std::fs::write(&source, b"first core")?;
         let selected = service_core_path_for(&source, Some(&home), true)?;
         assert_eq!(
             selected,
-            home.join("Applications/.clash-verge-rev-dev/service-core/verge-mihomo")
+            home.join("Applications/.pixiu-dev/service-core/pixiu-mihomo")
         );
 
         std::fs::write(&source, b"second core")?;
@@ -2282,7 +2278,7 @@ mod tests {
 
         assert_eq!(refreshed, selected);
         assert_eq!(std::fs::read(&refreshed)?, b"second core");
-        assert!(staging_temporary_entries(&home, "verge-mihomo")?.is_empty());
+        assert!(staging_temporary_entries(&home, "pixiu-mihomo")?.is_empty());
         Ok(())
     }
 
@@ -2291,7 +2287,7 @@ mod tests {
     fn failed_development_refresh_preserves_good_core_and_cleans_temporary_entry() -> anyhow::Result<()> {
         let root = TestDirectory::new("failed-refresh")?;
         let home = root.path().join("home");
-        let source = root.path().join("verge-mihomo");
+        let source = root.path().join("pixiu-mihomo");
         std::fs::write(&source, b"known good core")?;
         let selected = service_core_path_for(&source, Some(&home), true)?;
 
@@ -2318,7 +2314,7 @@ mod tests {
         assert!(publish_attempted.get());
         assert!(error.contains("injected post-creation publish failure"));
         assert_eq!(std::fs::read(&selected)?, b"known good core");
-        assert!(staging_temporary_entries(&home, "verge-mihomo")?.is_empty());
+        assert!(staging_temporary_entries(&home, "pixiu-mihomo")?.is_empty());
         Ok(())
     }
 
@@ -2329,9 +2325,9 @@ mod tests {
 
         let root = TestDirectory::new("symlink")?;
         let home = root.path().join("home");
-        let source = root.path().join("verge-mihomo");
+        let source = root.path().join("pixiu-mihomo");
         std::fs::write(&source, b"selected core")?;
-        let final_path = home.join("Applications/.clash-verge-rev-dev/service-core/verge-mihomo");
+        let final_path = home.join("Applications/.pixiu-dev/service-core/pixiu-mihomo");
         std::fs::create_dir_all(final_path.parent().unwrap_or_else(|| Path::new(".")))?;
         let symlink_target = root.path().join("must-not-change");
         std::fs::write(&symlink_target, b"target bytes")?;
@@ -2439,7 +2435,7 @@ mod tests {
                 &store,
                 super::ServiceStartRefusal {
                     code: code as u16,
-                    core_path: "/development/service-core/verge-mihomo".into(),
+                    core_path: "/development/service-core/pixiu-mihomo".into(),
                     message: "no administrator-approved copy is installed".into(),
                 },
             );
@@ -2465,7 +2461,7 @@ mod tests {
             &store,
             super::ServiceStartRefusal {
                 code: clash_verge_service_ipc::ServiceErrorCode::ProxyClearFailed as u16,
-                core_path: "/development/service-core/verge-mihomo".into(),
+                core_path: "/development/service-core/pixiu-mihomo".into(),
                 message: "SystemConfiguration operation failed: lock preferences (status 3002)".into(),
             },
         );
@@ -2552,7 +2548,7 @@ mod tests {
         assert!(
             !super::macos_service_install_markers()
                 .iter()
-                .any(|marker| marker == "/tmp/verge/clash-verge-service.sock")
+                .any(|marker| marker == "/tmp/verge/pixiu-service.sock")
         );
     }
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-chmod +x /usr/bin/clash-verge-service-install
-chmod +x /usr/bin/clash-verge-service-uninstall
-chmod +x /usr/bin/clash-verge-service
+chmod +x /usr/bin/pixiu-service-install
+chmod +x /usr/bin/pixiu-service-uninstall
+chmod +x /usr/bin/pixiu-service
 
 # The enforcement file exists in both Enforcing and Permissive mode.
 if [ ! -e /sys/fs/selinux/enforce ]; then
@@ -16,7 +16,7 @@ if [ ! -x /usr/sbin/semanage ] || [ ! -x /usr/sbin/restorecon ]; then
 fi
 
 # Keep these local rules on removal: they may predate this package or serve a standalone development service.
-for service in clash-verge-service clash-verge-service-dev; do
+for service in pixiu-service pixiu-service-dev; do
     for directory in bin cores; do
         target="/var/lib/$service/$directory"
         if [ -L "/var/lib/$service" ] || [ -L "$target" ]; then

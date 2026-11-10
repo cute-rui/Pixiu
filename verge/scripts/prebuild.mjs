@@ -280,8 +280,8 @@ function mihomoAlpha() {
   const isWin = platform === 'win32'
   const urlExt = isWin ? 'zip' : 'gz'
   return {
-    name: 'verge-mihomo-alpha',
-    targetFile: `verge-mihomo-alpha-${SIDECAR_HOST}${isWin ? '.exe' : ''}`,
+    name: 'pixiu-mihomo-alpha',
+    targetFile: `pixiu-mihomo-alpha-${SIDECAR_HOST}${isWin ? '.exe' : ''}`,
     exeFile: `${name}${isWin ? '.exe' : ''}`,
     zipFile: `${name}-${META_ALPHA_VERSION}.${urlExt}`,
     downloadURL: `${META_ALPHA_URL_PREFIX}/${name}-${META_ALPHA_VERSION}.${urlExt}`,
@@ -293,8 +293,8 @@ function mihomo() {
   const isWin = platform === 'win32'
   const urlExt = isWin ? 'zip' : 'gz'
   return {
-    name: 'verge-mihomo',
-    targetFile: `verge-mihomo-${SIDECAR_HOST}${isWin ? '.exe' : ''}`,
+    name: 'pixiu-mihomo',
+    targetFile: `pixiu-mihomo-${SIDECAR_HOST}${isWin ? '.exe' : ''}`,
     exeFile: `${name}${isWin ? '.exe' : ''}`,
     zipFile: `${name}-${META_VERSION}.${urlExt}`,
     downloadURL: `${META_URL_PREFIX}/${META_VERSION}/${name}-${META_VERSION}.${urlExt}`,
@@ -514,9 +514,9 @@ const resolvePlugin = async () => {
 // Service executable permissions
 const resolveServicePermission = async () => {
   const serviceExecutables = [
-    'clash-verge-service*',
-    'clash-verge-service-install*',
-    'clash-verge-service-uninstall*',
+    'pixiu-service*',
+    'pixiu-service-install*',
+    'pixiu-service-uninstall*',
   ]
   const hashCache = await loadHashCache()
   let hasChanges = false
@@ -549,9 +549,9 @@ const resolveServicePermission = async () => {
 
 // Other resources
 const SERVICE_BINARIES = [
-  'clash-verge-service',
-  'clash-verge-service-install',
-  'clash-verge-service-uninstall',
+  'pixiu-service',
+  'pixiu-service-install',
+  'pixiu-service-uninstall',
 ]
 
 function serviceFileInfo(name) {
@@ -682,8 +682,8 @@ const CORE_HASHES_NSH = path.join(
 async function resolveCoreHashes() {
   const lines = []
   for (const [define, name] of [
-    ['MIHOMO_SHA256', 'verge-mihomo'],
-    ['MIHOMO_ALPHA_SHA256', 'verge-mihomo-alpha'],
+    ['MIHOMO_SHA256', 'pixiu-mihomo'],
+    ['MIHOMO_ALPHA_SHA256', 'pixiu-mihomo-alpha'],
   ]) {
     const sidecar = path.join(SIDECAR_DIR, `${name}-${SIDECAR_HOST}.exe`)
     const digest = createHash('sha256')
@@ -734,13 +734,13 @@ const resolveUnSetDnsScript = () =>
 
 const tasks = [
   {
-    name: 'verge-mihomo-alpha',
+    name: 'pixiu-mihomo-alpha',
     func: () =>
       getLatestAlphaVersion().then(() => resolveSidecar(mihomoAlpha())),
     retry: 5,
   },
   {
-    name: 'verge-mihomo',
+    name: 'pixiu-mihomo',
     func: () => getLatestReleaseVersion().then(() => resolveSidecar(mihomo())),
     retry: 5,
   },

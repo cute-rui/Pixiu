@@ -19,7 +19,7 @@ use tauri_plugin_shell::ShellExt as _;
 
 pub(super) fn explain_core_occupancy(error: anyhow::Error) -> anyhow::Error {
     let detail = error.to_string();
-    if detail.starts_with("process verge-mihomo") && detail.ends_with("; refusing a second core") {
+    if detail.starts_with("process pixiu-mihomo") && detail.ends_with("; refusing a second core") {
         error.context(clash_verge_i18n::t!("core.alreadyRunning").into_owned())
     } else {
         error
@@ -524,8 +524,8 @@ mod readiness_tests {
     #[test]
     fn core_occupancy_explanation_preserves_the_original_error() {
         for detail in [
-            "process verge-mihomo remains after IPC failure; refusing a second core",
-            "process verge-mihomo-alpha.exe (PID 123) is still running; refusing a second core",
+            "process pixiu-mihomo remains after IPC failure; refusing a second core",
+            "process pixiu-mihomo-alpha.exe (PID 123) is still running; refusing a second core",
         ] {
             let error = super::explain_core_occupancy(anyhow::anyhow!(detail));
             assert_eq!(error.to_string(), clash_verge_i18n::t!("core.alreadyRunning"));

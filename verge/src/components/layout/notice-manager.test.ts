@@ -28,15 +28,15 @@ afterEach(() => {
 it.each([
   [
     'startup',
-    'process verge-mihomo remains after IPC failure; refusing a second core',
+    'process pixiu-mihomo remains after IPC failure; refusing a second core',
   ],
   [
     'restart',
-    'process verge-mihomo-alpha remains after IPC failure; refusing a second core',
+    'process pixiu-mihomo-alpha remains after IPC failure; refusing a second core',
   ],
   [
     'sidecar',
-    'Service core rejected: permission denied; Sidecar fallback failed: process verge-mihomo.exe (PID 123) is still running; refusing a second core',
+    'Service core rejected: permission denied; Sidecar fallback failed: process pixiu-mihomo.exe (PID 123) is still running; refusing a second core',
   ],
 ])(
   'explains an occupied core during %s and preserves diagnostics',

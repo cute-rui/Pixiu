@@ -1,6 +1,6 @@
 # Pixiu
 
-Pixiu is a NetBird client with Mihomo as the other exit, plus a desktop Clash Verge shell and a `pixiu` CLI.
+Pixiu is a NetBird client with Mihomo as the other exit, plus the Pixiu desktop app and a `pixiu` CLI.
 
 The root `LICENSE` is the upstream NetBird BSD-3-Clause text. `management/`, `signal/`, `relay/`, and `combined/` inside `netbird/` stay AGPL-3.0, as that file says. Each vendored tree keeps its own upstream license.
 
@@ -9,7 +9,7 @@ The root `LICENSE` is the upstream NetBird BSD-3-Clause text. `management/`, `si
 - `netbird/` — NetBird. The TUN keeps overlay prefixes (`100.64.0.0/10` and IPv6 ULA) and diverts everything else to Mihomo.
 - `bridge/` — `github.com/pixiu/mihomo-bridge`, pinned to Mihomo `v1.19.32`. NetBird requires it with `replace => ../bridge`.
 - `android-client/` and `ios-client/` — mobile apps. `android-client/netbird` and `ios-client/netbird-core` are symlinks to `../netbird`. tvOS has no Mihomo.
-- `verge/` — Clash Verge Rev. The NetBird page reads the local daemon over its unix socket or Windows named pipe and merges peer public addresses into the runtime config only.
+- `verge/` — the Pixiu desktop app. The NetBird page reads the local daemon over its unix socket or Windows named pipe and merges peer public addresses into the runtime config only.
 - `cli/` — the `pixiu` binary. Config is `~/.config/pixiu.toml`.
 
 ## Build

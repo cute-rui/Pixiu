@@ -12,10 +12,10 @@ notifications:
     'off': System proxy has been disabled.
   systemProxyFailed:
     title: Система проксие
-    body: Система проксиен көйләп булмады. Сәбәбен күрер өчен Clash Verge'ны ачыгыз.
+    body: Система проксиен көйләп булмады. Сәбәбен күрер өчен Pixiu'ны ачыгыз.
   systemProxyGuardStopped:
     title: Система проксие сакчысы
-    body: Берничә тапкыр рәттән уңышсыз булгач туктады. Сәбәбен күрер өчен Clash Verge'ны ачыгыз.
+    body: Берничә тапкыр рәттән уңышсыз булгач туктады. Сәбәбен күрер өчен Pixiu'ны ачыгыз.
   tunModeToggled:
     title: TUN режимы
     'on': TUN mode has been enabled.
@@ -28,15 +28,15 @@ notifications:
     body: Профиль яңадан активлаштырылды.
   appQuit:
     title: Чыгар алдыннан
-    body: Clash Verge чыгарга җыена.
+    body: Pixiu чыгарга җыена.
   updateReady:
-    title: Clash Verge Update
+    title: Pixiu Update
     body: A new version (v{version}) has been downloaded and is ready to install.
     installNow: Install Now
     later: Later
 service:
-  adminInstallPrompt: Clash Verge хезмәтен урнаштыру өчен администратор хокуклары кирәк.
-  adminUninstallPrompt: Clash Verge хезмәтен бетерү өчен администратор хокуклары кирәк.
+  adminInstallPrompt: Pixiu хезмәтен урнаштыру өчен администратор хокуклары кирәк.
+  adminUninstallPrompt: Pixiu хезмәтен бетерү өчен администратор хокуклары кирәк.
 core:
   alreadyRunning: 'Төшне башлап булмый: төш процессы инде эшли. Тиешле кушымтаны ябыгыз яки калган процессны тәмамлагыз һәм яңадан сынап карагыз. Проблема хәл ителмәсә, санакны яңадан кабызыгыз.'
 launchGuard:

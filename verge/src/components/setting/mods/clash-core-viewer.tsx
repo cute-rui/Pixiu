@@ -29,12 +29,12 @@ import { useSettingDialog } from '../settings-search-context'
 const VALID_CORE = [
   {
     name: 'Mihomo',
-    core: 'verge-mihomo',
+    core: 'pixiu-mihomo',
     chipKey: 'settings.modals.clashCore.variants.release',
   },
   {
     name: 'Mihomo Alpha',
-    core: 'verge-mihomo-alpha',
+    core: 'pixiu-mihomo-alpha',
     chipKey: 'settings.modals.clashCore.variants.alpha',
   },
 ]
@@ -56,7 +56,7 @@ export function ClashCoreViewer({ ref }: { ref?: Ref<DialogRef> }) {
     close: () => setOpen(false),
   }))
 
-  const { clash_core = 'verge-mihomo' } = verge ?? {}
+  const { clash_core = 'pixiu-mihomo' } = verge ?? {}
 
   const onCoreChange = useLockFn(async (core: string) => {
     if (core === clash_core) return

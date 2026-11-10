@@ -1,5 +1,5 @@
 {
-  "name": "Clash Verge Rev Development Environment",
+  "name": "Pixiu Development Environment",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
 
   "features": {

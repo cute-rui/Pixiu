@@ -11,7 +11,7 @@ const STARTUP_LOG_FILE: &str = "startup.log";
 
 pub(crate) fn report_error(error: &anyhow::Error) {
     let detail = format!("{error:#}");
-    eprintln!("[clash-verge] startup failed: {detail}");
+    eprintln!("[pixiu] startup failed: {detail}");
 
     let log_result = startup_log_path().and_then(|path| {
         append_error(&path, &detail).with_context(|| format!("startup log {}", path.display()))?;
@@ -19,20 +19,20 @@ pub(crate) fn report_error(error: &anyhow::Error) {
     });
     let message = match log_result {
         Ok(path) => format!(
-            "Clash Verge could not start.\n\n{detail}\n\nDiagnostic log:\n{}",
+            "Pixiu could not start.\n\n{detail}\n\nDiagnostic log:\n{}",
             path.display()
         ),
         Err(log_error) => {
-            eprintln!("[clash-verge] failed to write startup log: {log_error:#}");
+            eprintln!("[pixiu] failed to write startup log: {log_error:#}");
             format!(
-                "Clash Verge could not start.\n\n{detail}\n\nThe diagnostic log could not be written:\n{log_error:#}"
+                "Pixiu could not start.\n\n{detail}\n\nThe diagnostic log could not be written:\n{log_error:#}"
             )
         }
     };
 
     let _ = rfd::MessageDialog::new()
         .set_level(rfd::MessageLevel::Error)
-        .set_title("Clash Verge startup failed")
+        .set_title("Pixiu startup failed")
         .set_description(message)
         .set_buttons(rfd::MessageButtons::Ok)
         .show();
