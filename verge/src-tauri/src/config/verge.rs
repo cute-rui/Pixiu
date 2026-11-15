@@ -228,6 +228,29 @@ pub struct IVerge {
     /// SSIDs that must not auto-connect NetBird and Clash. Empty does not block.
     #[serde(rename = "pixiu.wifi.blacklist", default)]
     pub pixiu_wifi_blacklist: Option<Vec<std::string::String>>,
+
+    /// `user`, `srv`, or empty. Empty means the subscription slot can be filled from SRV.
+    #[serde(
+        rename = "pixiu.subscription.source",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[specta(type = Option<std::string::String>)]
+    pub pixiu_subscription_source: Option<String>,
+
+    /// Management hostname that produced the SRV subscription URL.
+    #[serde(
+        rename = "pixiu.subscription.srv_host",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[specta(type = Option<std::string::String>)]
+    pub pixiu_subscription_srv_host: Option<String>,
+
+    /// `profiles.yaml` uid of the remote this SRV subscription wrote.
+    #[serde(rename = "pixiu.subscription.uid", default, skip_serializing_if = "Option::is_none")]
+    #[specta(type = Option<std::string::String>)]
+    pub pixiu_subscription_uid: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize, specta::Type)]
@@ -521,6 +544,9 @@ impl IVerge {
         patch_opt_field!(self, patch, home_cards);
         patch_opt_field!(self, patch, enable_external_controller);
         patch_opt_field!(self, patch, pixiu_wifi_blacklist);
+        patch_opt_field!(self, patch, pixiu_subscription_source);
+        patch_opt_field!(self, patch, pixiu_subscription_srv_host);
+        patch_opt_field!(self, patch, pixiu_subscription_uid);
     }
 
     pub fn get_log_level(&self) -> LevelFilter {

@@ -15,6 +15,7 @@ use serde::Serialize;
 pub struct NetBirdDaemon {
     pub running: bool,
     pub status: String,
+    pub management_url: String,
     pub admin_url: String,
     pub interface_name: String,
     pub message: String,
@@ -34,6 +35,7 @@ pub async fn status() -> NetBirdDaemon {
         Err(_) => NetBirdDaemon {
             running: false,
             status: String::new(),
+            management_url: String::new(),
             admin_url: String::new(),
             interface_name: String::new(),
             message: "netbird daemon is not running".to_string(),
@@ -45,16 +47,23 @@ pub async fn status() -> NetBirdDaemon {
 async fn read_snapshot() -> Result<NetBirdDaemon> {
     let config = grpc("/daemon.DaemonService/GetConfig", &[]).await?;
     let status_body = grpc("/daemon.DaemonService/Status", &[0x08, 0x01]).await?;
+    let management_url = first_string(&config, 1).unwrap_or_default();
     let admin_url = first_string(&config, 5).unwrap_or_default();
     let interface_name = first_string(&config, 6).unwrap_or_default();
     let status = first_string(&status_body, 1).unwrap_or_default();
     let endpoints = endpoints_from_status(&status_body);
-    if status.is_empty() && admin_url.is_empty() && interface_name.is_empty() && endpoints.is_empty() {
+    if status.is_empty()
+        && management_url.is_empty()
+        && admin_url.is_empty()
+        && interface_name.is_empty()
+        && endpoints.is_empty()
+    {
         bail!("netbird daemon is not running");
     }
     Ok(NetBirdDaemon {
         running: true,
         status,
+        management_url,
         admin_url,
         interface_name,
         message: String::new(),
@@ -146,10 +155,7 @@ fn socket_path() -> Result<std::path::PathBuf> {
 
 #[cfg(windows)]
 async fn open_pipe() -> Result<tokio::net::windows::named_pipe::NamedPipeClient> {
-    let paths = [
-        r"\\.\pipe\ProtectedPrefix\Administrators\netbird",
-        r"\\.\pipe\netbird",
-    ];
+    let paths = [r"\\.\pipe\ProtectedPrefix\Administrators\netbird", r"\\.\pipe\netbird"];
     let mut last = None;
     for path in paths {
         match tokio::net::windows::named_pipe::ClientOptions::new().open(path) {
@@ -157,7 +163,11 @@ async fn open_pipe() -> Result<tokio::net::windows::named_pipe::NamedPipeClient>
             Err(err) => last = Some(err),
         }
     }
-    bail!("{}", last.map(|err| err.to_string()).unwrap_or_else(|| "netbird daemon is not running".into()))
+    bail!(
+        "{}",
+        last.map(|err| err.to_string())
+            .unwrap_or_else(|| "netbird daemon is not running".into())
+    )
 }
 
 pub fn endpoints_from_status(buf: &[u8]) -> Vec<String> {
@@ -180,7 +190,10 @@ fn first_string(buf: &[u8], field: u64) -> Option<String> {
 }
 
 fn strings(buf: &[u8], field: u64) -> Vec<String> {
-    messages(buf, field).into_iter().filter_map(|bytes| String::from_utf8(bytes).ok()).collect()
+    messages(buf, field)
+        .into_iter()
+        .filter_map(|bytes| String::from_utf8(bytes).ok())
+        .collect()
 }
 
 fn messages(buf: &[u8], field: u64) -> Vec<Vec<u8>> {
@@ -241,7 +254,12 @@ mod tests {
         let full = proto_bytes(4, &peer);
         let status = proto_bytes(2, &full);
         let config = proto_string(5, "https://admin.example");
+        let management = proto_string(1, "https://api.example.com:33073");
         assert_eq!(first_string(&config, 5).as_deref(), Some("https://admin.example"));
+        assert_eq!(
+            first_string(&management, 1).as_deref(),
+            Some("https://api.example.com:33073")
+        );
         assert_eq!(endpoints_from_status(&status), vec!["1.2.3.4:51820".to_string()]);
     }
 

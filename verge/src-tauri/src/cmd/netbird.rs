@@ -37,7 +37,9 @@ pub async fn set_pixiu_wifi_blacklist(text: String) -> CmdResult {
         pixiu_wifi_blacklist: Some(list),
         ..IVerge::default()
     };
-    feat::patch_verge(&patch, false).await.map_err(|err| err.to_string().into())
+    feat::patch_verge(&patch, false)
+        .await
+        .map_err(|err| err.to_string().into())
 }
 
 /// Explicit connect. A listed SSID warns and does not start unless `confirm` is true.
@@ -47,7 +49,10 @@ pub async fn pixiu_connect(confirm: bool) -> CmdResult<PixiuConnect> {
     if let Some(ssid) = pixiu::listed_ssid().await {
         let warning = pixiu::wifi_warning(&ssid);
         if !confirm {
-            return Ok(PixiuConnect { started: false, warning });
+            return Ok(PixiuConnect {
+                started: false,
+                warning,
+            });
         }
         pixiu::allow_next_start();
         let started = CoreManager::global().start_core().await.is_ok();
@@ -56,5 +61,31 @@ pub async fn pixiu_connect(confirm: bool) -> CmdResult<PixiuConnect> {
     }
     let started = CoreManager::global().start_core().await.is_ok();
     let _ = tokio::process::Command::new("netbird").arg("up").spawn();
-    Ok(PixiuConnect { started, warning: String::new() })
+    Ok(PixiuConnect {
+        started,
+        warning: String::new(),
+    })
+}
+
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PixiuSrvApply {
+    pub applied: bool,
+    pub kind: String,
+    pub message: String,
+    pub url: String,
+}
+
+/// Look up `_pixiu._tcp` on the current management host and write that profile
+/// into the one Verge remote subscription.
+#[tauri::command]
+#[specta::specta]
+pub async fn pixiu_apply_srv_profile() -> CmdResult<PixiuSrvApply> {
+    let report = crate::pixiu::srv::apply_server_profile().await;
+    Ok(PixiuSrvApply {
+        applied: report.applied,
+        kind: report.kind,
+        message: report.message,
+        url: report.url,
+    })
 }

@@ -16,18 +16,32 @@ import { BasePage } from '@/components/base'
 import {
   getNetBirdDaemon,
   getPixiuWifiBlacklist,
+  pixiuApplySrvProfile,
   pixiuConnect,
   setPixiuWifiBlacklist,
   type NetBirdDaemon,
+  type PixiuSrvApply,
 } from '@/services/cmds'
+
+function netbirdConnected(daemon: NetBirdDaemon | null) {
+  return daemon?.status.toLowerCase() === 'connected'
+}
+
+function srvSeverity(result: PixiuSrvApply): 'success' | 'warning' | 'error' {
+  if (result.applied) return 'success'
+  if (result.kind === 'transient') return 'error'
+  return 'warning'
+}
 
 const NetBirdPage = () => {
   const [daemon, setDaemon] = useState<NetBirdDaemon | null>(null)
   const [blacklist, setBlacklist] = useState('')
   const [warning, setWarning] = useState('')
   const [error, setError] = useState('')
+  const [applying, setApplying] = useState(false)
+  const [srv, setSrv] = useState<PixiuSrvApply | null>(null)
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
       const [status, list] = await Promise.all([
         getNetBirdDaemon(),
@@ -42,12 +56,12 @@ const NetBirdPage = () => {
   }, [])
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    void load()
+  }, [load])
 
   const saveList = async () => {
     await setPixiuWifiBlacklist(blacklist)
-    await refresh()
+    await load()
   }
 
   const connect = async (confirm: boolean) => {
@@ -57,25 +71,65 @@ const NetBirdPage = () => {
       return
     }
     setWarning('')
-    await refresh()
+    await load()
   }
+
+  const applySrv = async () => {
+    setApplying(true)
+    setSrv(null)
+    try {
+      setSrv(await pixiuApplySrvProfile())
+    } catch (err) {
+      setSrv({
+        applied: false,
+        kind: 'transient',
+        message:
+          err instanceof Error
+            ? err.message
+            : 'Could not look up the server profile',
+        url: '',
+      })
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  const connected = netbirdConnected(daemon)
 
   return (
     <BasePage title="NetBird">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
         {error ? <Alert severity="error">{error}</Alert> : null}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            flexWrap: 'wrap',
+          }}
+        >
           <HubOutlined fontSize="small" />
-          <Typography>
+          <Typography sx={{ flex: 1, minWidth: 180 }}>
             {daemon?.running
               ? `Daemon ${daemon.status || 'up'}${daemon.interfaceName ? ` on ${daemon.interfaceName}` : ''}`
               : daemon?.message || 'netbird daemon is not running'}
           </Typography>
-          <Button onClick={() => void refresh()}>Refresh</Button>
-          <Button variant="contained" onClick={() => void connect(false)}>
-            Connect
+          {connected ? null : (
+            <Button variant="contained" onClick={() => void connect(false)}>
+              Connect
+            </Button>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Button
+            variant="outlined"
+            disabled={applying}
+            onClick={() => void applySrv()}
+          >
+            {applying ? 'Looking up server profile…' : 'Use server profile'}
           </Button>
         </Box>
+        {srv ? <Alert severity={srvSeverity(srv)}>{srv.message}</Alert> : null}
         {daemon?.adminUrl ? (
           <Box
             component="iframe"

@@ -199,10 +199,18 @@ export async function getClashLogs() {
 export interface NetBirdDaemon {
   running: boolean
   status: string
+  managementUrl: string
   adminUrl: string
   interfaceName: string
   message: string
   endpoints: string[]
+}
+
+export interface PixiuSrvApply {
+  applied: boolean
+  kind: string
+  message: string
+  url: string
 }
 
 export async function getNetBirdDaemon() {
@@ -221,6 +229,10 @@ export async function pixiuConnect(confirm: boolean) {
   return invoke<{ started: boolean; warning: string }>('pixiu_connect', {
     confirm,
   })
+}
+
+export async function pixiuApplySrvProfile() {
+  return invoke<PixiuSrvApply>('pixiu_apply_srv_profile')
 }
 
 export async function getVergeConfig(): Promise<IVergeConfig> {

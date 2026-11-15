@@ -128,6 +128,9 @@ verge_registry! {
     hover_jump_navigator_delay => NoEffect;
     enable_external_controller => [RestartCore];
     pixiu_wifi_blacklist => NoEffect;
+    pixiu_subscription_source => NoEffect;
+    pixiu_subscription_srv_host => NoEffect;
+    pixiu_subscription_uid => NoEffect;
 }
 
 pub(super) fn clash_effects(patch: &serde_yaml_ng::Mapping) -> Effects {

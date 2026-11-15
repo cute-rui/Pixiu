@@ -65,6 +65,7 @@ pub fn builder() -> tauri_specta::Builder<tauri::Wry> {
             cmd::get_pixiu_wifi_blacklist,
             cmd::set_pixiu_wifi_blacklist,
             cmd::pixiu_connect,
+            cmd::pixiu_apply_srv_profile,
             cmd::patch_verge_config,
             cmd::test_delay,
             cmd::get_app_dir,

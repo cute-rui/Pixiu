@@ -6,6 +6,7 @@
 //! NetBird interface.
 
 pub(crate) mod daemon;
+pub(crate) mod srv;
 
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -139,7 +140,7 @@ fn ip_from_token(mut token: &str) -> Option<IpAddr> {
     host.parse().ok()
 }
 
-fn is_overlay(addr: IpAddr) -> bool {
+pub(crate) fn is_overlay(addr: IpAddr) -> bool {
     match addr {
         IpAddr::V4(v4) => {
             let octets = v4.octets();
