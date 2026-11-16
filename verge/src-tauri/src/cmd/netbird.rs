@@ -55,16 +55,44 @@ pub async fn pixiu_connect(confirm: bool) -> CmdResult<PixiuConnect> {
             });
         }
         pixiu::allow_next_start();
-        let started = CoreManager::global().start_core().await.is_ok();
-        let _ = tokio::process::Command::new("netbird").arg("up").spawn();
+        let started = bring_up().await;
         return Ok(PixiuConnect { started, warning });
     }
-    let started = CoreManager::global().start_core().await.is_ok();
-    let _ = tokio::process::Command::new("netbird").arg("up").spawn();
+    let started = bring_up().await;
     Ok(PixiuConnect {
         started,
         warning: String::new(),
     })
+}
+
+async fn bring_up() -> bool {
+    let started = CoreManager::global().start_core().await.is_ok();
+    if pixiu::daemon::up().await.is_err() {
+        let _ = tokio::process::Command::new("netbird").arg("up").spawn();
+    }
+    started
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn pixiu_disconnect() -> CmdResult {
+    pixiu::daemon::down().await.map_err(|err| err.to_string().into())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn pixiu_set_networks(ids: Vec<String>, selected: bool, all: bool) -> CmdResult {
+    pixiu::daemon::set_networks(&ids, all, selected)
+        .await
+        .map_err(|err| err.to_string().into())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn pixiu_switch_profile(profile: String) -> CmdResult {
+    pixiu::daemon::switch_profile(&profile)
+        .await
+        .map_err(|err| err.to_string().into())
 }
 
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -74,6 +102,8 @@ pub struct PixiuSrvApply {
     pub kind: String,
     pub message: String,
     pub url: String,
+    pub host: String,
+    pub current: bool,
 }
 
 /// Look up `_pixiu._tcp` on the current management host and write that profile
@@ -87,5 +117,7 @@ pub async fn pixiu_apply_srv_profile() -> CmdResult<PixiuSrvApply> {
         kind: report.kind,
         message: report.message,
         url: report.url,
+        host: report.host,
+        current: report.current,
     })
 }

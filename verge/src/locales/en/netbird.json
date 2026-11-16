@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "Connected",
+    "connecting": "Connecting",
+    "idle": "Idle",
+    "needsLogin": "Needs login",
+    "loginFailed": "Login failed",
+    "sessionExpired": "Session expired",
+    "unknown": "Unknown",
+    "daemonDown": "NetBird daemon is not running",
+    "version": "Daemon {{version}}",
+    "localPeer": "This peer",
+    "management": "Management",
+    "signal": "Signal",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "actions": {
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "useServerProfile": "Use server profile",
+    "lookingUp": "Looking up server profile…",
+    "openAdmin": "Open admin"
+  },
+  "profiles": {
+    "label": "Profile"
+  },
+  "exitNodes": {
+    "label": "Exit node",
+    "none": "No exit node",
+    "empty": "No exit nodes from this management server"
+  },
+  "peers": {
+    "title": "Peers",
+    "search": "Search peers",
+    "all": "All",
+    "online": "Online",
+    "offline": "Offline",
+    "empty": "No peers yet",
+    "emptyHint": "Peers appear here after NetBird connects.",
+    "notConnected": "Connect to see peers.",
+    "noResults": "No peers match this search.",
+    "key": "Public key",
+    "received": "Received",
+    "sent": "Sent",
+    "path": "Path",
+    "relayed": "Relayed",
+    "direct": "Direct",
+    "endpoint": "Endpoint",
+    "networks": "Networks"
+  },
+  "networks": {
+    "title": "Networks",
+    "search": "Search networks",
+    "empty": "No networks",
+    "emptyHint": "Routed networks appear here after NetBird connects.",
+    "notConnected": "Connect to see networks.",
+    "noResults": "No networks match this search.",
+    "enableAll": "Enable all",
+    "disableAll": "Disable all",
+    "selected": "On",
+    "off": "Off"
+  },
+  "blacklist": {
+    "label": "Wi-Fi blacklist",
+    "helper": "One SSID per line. An empty list, another network, or a failed scan does not block.",
+    "dialogTitle": "Wi-Fi blacklist",
+    "warning": "Wi-Fi \"{{ssid}}\" is on the blacklist. Starting would connect both NetBird and Clash on that network.",
+    "no": "No",
+    "yes": "Yes"
+  },
+  "errors": {
+    "read": "Could not read NetBird",
+    "action": "The NetBird request failed",
+    "lookup": "Could not look up the server profile"
+  },
+  "srv": {
+    "thisServer": "this server",
+    "saved": "Saved {{url}} from _pixiu._tcp on {{host}} into the subscription.",
+    "savedNotCurrent": "Saved {{url}} from _pixiu._tcp on {{host}}. The current profile was not switched.",
+    "missing": "No _pixiu._tcp record on {{host}}. The subscription was left unchanged.",
+    "rejected": "The _pixiu._tcp target on {{host}} was rejected. The subscription was left unchanged.",
+    "transient": "Could not look up the server profile. The subscription was left unchanged.",
+    "unchanged": "The subscription was left unchanged."
+  }
+}

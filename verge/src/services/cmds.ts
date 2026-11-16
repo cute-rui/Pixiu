@@ -196,6 +196,50 @@ export async function getClashLogs() {
   }, [])
 }
 
+export interface NetBirdLink {
+  url: string
+  connected: boolean
+  error: string
+}
+
+export interface NetBirdLocal {
+  ip: string
+  ipv6: string
+  fqdn: string
+  pubKey: string
+  networks: string[]
+}
+
+export interface NetBirdPeer {
+  ip: string
+  ipv6: string
+  pubKey: string
+  connStatus: string
+  relayed: boolean
+  fqdn: string
+  bytesRx: number
+  bytesTx: number
+  latencyMs: number
+  relayAddress: string
+  rosenpassEnabled: boolean
+  networks: string[]
+  localEndpoint: string
+  remoteEndpoint: string
+}
+
+export interface NetBirdNetwork {
+  id: string
+  range: string
+  selected: boolean
+  domains: string[]
+}
+
+export interface NetBirdProfile {
+  name: string
+  id: string
+  active: boolean
+}
+
 export interface NetBirdDaemon {
   running: boolean
   status: string
@@ -204,6 +248,15 @@ export interface NetBirdDaemon {
   interfaceName: string
   message: string
   endpoints: string[]
+  daemonVersion: string
+  management: NetBirdLink
+  signal: NetBirdLink
+  local: NetBirdLocal
+  peers: NetBirdPeer[]
+  networks: NetBirdNetwork[]
+  profiles: NetBirdProfile[]
+  disableNetworks: boolean
+  disableProfiles: boolean
 }
 
 export interface PixiuSrvApply {
@@ -211,6 +264,8 @@ export interface PixiuSrvApply {
   kind: string
   message: string
   url: string
+  host: string
+  current: boolean
 }
 
 export async function getNetBirdDaemon() {
@@ -229,6 +284,22 @@ export async function pixiuConnect(confirm: boolean) {
   return invoke<{ started: boolean; warning: string }>('pixiu_connect', {
     confirm,
   })
+}
+
+export async function pixiuDisconnect() {
+  return invoke<void>('pixiu_disconnect')
+}
+
+export async function pixiuSetNetworks(
+  ids: string[],
+  selected: boolean,
+  all = false,
+) {
+  return invoke<void>('pixiu_set_networks', { ids, selected, all })
+}
+
+export async function pixiuSwitchProfile(profile: string) {
+  return invoke<void>('pixiu_switch_profile', { profile })
 }
 
 export async function pixiuApplySrvProfile() {

@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "Conectado",
+    "connecting": "Conectando",
+    "idle": "En espera",
+    "needsLogin": "Hace falta iniciar sesión",
+    "loginFailed": "Error de inicio de sesión",
+    "sessionExpired": "La sesión caducó",
+    "unknown": "Desconocido",
+    "daemonDown": "El demonio de NetBird no está en ejecución",
+    "version": "Demonio {{version}}",
+    "localPeer": "Este par",
+    "management": "Gestión",
+    "signal": "Señal",
+    "online": "En línea",
+    "offline": "Desconectado"
+  },
+  "actions": {
+    "connect": "Conectar",
+    "disconnect": "Desconectar",
+    "useServerProfile": "Usar el perfil del servidor",
+    "lookingUp": "Buscando el perfil del servidor…",
+    "openAdmin": "Abrir administración"
+  },
+  "profiles": {
+    "label": "Perfil"
+  },
+  "exitNodes": {
+    "label": "Nodo de salida",
+    "none": "Sin nodo de salida",
+    "empty": "Este servidor de gestión no tiene nodos de salida"
+  },
+  "peers": {
+    "title": "Pares",
+    "search": "Buscar pares",
+    "all": "Todos",
+    "online": "En línea",
+    "offline": "Desconectados",
+    "empty": "Todavía no hay pares",
+    "emptyHint": "Los pares aparecen aquí cuando NetBird se conecta.",
+    "notConnected": "Conéctate para ver los pares.",
+    "noResults": "Ningún par coincide con la búsqueda.",
+    "key": "Clave pública",
+    "received": "Recibido",
+    "sent": "Enviado",
+    "path": "Ruta",
+    "relayed": "Por relay",
+    "direct": "Directa",
+    "endpoint": "Extremo",
+    "networks": "Redes"
+  },
+  "networks": {
+    "title": "Redes",
+    "search": "Buscar redes",
+    "empty": "No hay redes",
+    "emptyHint": "Las redes enrutadas aparecen aquí cuando NetBird se conecta.",
+    "notConnected": "Conéctate para ver las redes.",
+    "noResults": "Ninguna red coincide con la búsqueda.",
+    "enableAll": "Activar todas",
+    "disableAll": "Desactivar todas",
+    "selected": "Activa",
+    "off": "Inactiva"
+  },
+  "blacklist": {
+    "label": "Lista negra de Wi-Fi",
+    "helper": "Un SSID por línea. Una lista vacía, otra red o un escaneo fallido no bloquean.",
+    "dialogTitle": "Lista negra de Wi-Fi",
+    "warning": "La Wi-Fi \"{{ssid}}\" está en la lista negra. Iniciar conectaría NetBird y Clash a esa red.",
+    "no": "No",
+    "yes": "Sí"
+  },
+  "errors": {
+    "read": "No se pudo leer NetBird",
+    "action": "La solicitud de NetBird falló",
+    "lookup": "No se pudo buscar el perfil del servidor"
+  },
+  "srv": {
+    "thisServer": "este servidor",
+    "saved": "Se guardó {{url}} de _pixiu._tcp en {{host}} en la suscripción.",
+    "savedNotCurrent": "Se guardó {{url}} de _pixiu._tcp en {{host}}. No se cambió el perfil actual.",
+    "missing": "No hay un registro _pixiu._tcp en {{host}}. La suscripción no cambió.",
+    "rejected": "El destino _pixiu._tcp de {{host}} fue rechazado. La suscripción no cambió.",
+    "transient": "No se pudo buscar el perfil del servidor. La suscripción no cambió.",
+    "unchanged": "La suscripción no cambió."
+  }
+}

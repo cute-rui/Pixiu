@@ -208,6 +208,7 @@ export interface TranslationResources {
             connections: string
             home: string
             logs: string
+            netbird: string
             profiles: string
             proxies: string
             rules: string
@@ -261,6 +262,95 @@ export interface TranslationResources {
       }
       page: {
         title: string
+      }
+    }
+    netbird: {
+      actions: {
+        connect: string
+        disconnect: string
+        lookingUp: string
+        openAdmin: string
+        useServerProfile: string
+      }
+      blacklist: {
+        dialogTitle: string
+        helper: string
+        label: string
+        no: string
+        warning: string
+        yes: string
+      }
+      errors: {
+        action: string
+        lookup: string
+        read: string
+      }
+      exitNodes: {
+        empty: string
+        label: string
+        none: string
+      }
+      networks: {
+        disableAll: string
+        empty: string
+        emptyHint: string
+        enableAll: string
+        noResults: string
+        notConnected: string
+        off: string
+        search: string
+        selected: string
+        title: string
+      }
+      page: {
+        title: string
+      }
+      peers: {
+        all: string
+        direct: string
+        empty: string
+        emptyHint: string
+        endpoint: string
+        key: string
+        networks: string
+        noResults: string
+        notConnected: string
+        offline: string
+        online: string
+        path: string
+        received: string
+        relayed: string
+        search: string
+        sent: string
+        title: string
+      }
+      profiles: {
+        label: string
+      }
+      srv: {
+        missing: string
+        rejected: string
+        saved: string
+        savedNotCurrent: string
+        thisServer: string
+        transient: string
+        unchanged: string
+      }
+      status: {
+        connected: string
+        connecting: string
+        daemonDown: string
+        idle: string
+        localPeer: string
+        loginFailed: string
+        management: string
+        needsLogin: string
+        offline: string
+        online: string
+        sessionExpired: string
+        signal: string
+        unknown: string
+        version: string
       }
     }
     profiles: {

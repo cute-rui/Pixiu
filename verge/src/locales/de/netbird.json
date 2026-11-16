@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "Verbunden",
+    "connecting": "Verbinden",
+    "idle": "Bereit",
+    "needsLogin": "Anmeldung nötig",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "sessionExpired": "Sitzung abgelaufen",
+    "unknown": "Unbekannt",
+    "daemonDown": "Der NetBird-Dienst läuft nicht",
+    "version": "Dienst {{version}}",
+    "localPeer": "Dieser Peer",
+    "management": "Verwaltung",
+    "signal": "Signal",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "actions": {
+    "connect": "Verbinden",
+    "disconnect": "Trennen",
+    "useServerProfile": "Serverprofil verwenden",
+    "lookingUp": "Serverprofil wird gesucht…",
+    "openAdmin": "Verwaltung öffnen"
+  },
+  "profiles": {
+    "label": "Profil"
+  },
+  "exitNodes": {
+    "label": "Exit-Knoten",
+    "none": "Kein Exit-Knoten",
+    "empty": "Dieser Verwaltungsserver hat keine Exit-Knoten"
+  },
+  "peers": {
+    "title": "Peers",
+    "search": "Peers suchen",
+    "all": "Alle",
+    "online": "Online",
+    "offline": "Offline",
+    "empty": "Noch keine Peers",
+    "emptyHint": "Peers erscheinen hier, sobald NetBird verbunden ist.",
+    "notConnected": "Verbinden, um Peers zu sehen.",
+    "noResults": "Keine Peers passen zur Suche.",
+    "key": "Öffentlicher Schlüssel",
+    "received": "Empfangen",
+    "sent": "Gesendet",
+    "path": "Weg",
+    "relayed": "Über Relay",
+    "direct": "Direkt",
+    "endpoint": "Endpunkt",
+    "networks": "Netze"
+  },
+  "networks": {
+    "title": "Netze",
+    "search": "Netze suchen",
+    "empty": "Keine Netze",
+    "emptyHint": "Geroutete Netze erscheinen hier, sobald NetBird verbunden ist.",
+    "notConnected": "Verbinden, um Netze zu sehen.",
+    "noResults": "Keine Netze passen zur Suche.",
+    "enableAll": "Alle aktivieren",
+    "disableAll": "Alle deaktivieren",
+    "selected": "An",
+    "off": "Aus"
+  },
+  "blacklist": {
+    "label": "WLAN-Sperrliste",
+    "helper": "Eine SSID pro Zeile. Eine leere Liste, ein anderes Netz oder ein fehlgeschlagener Scan blockiert nichts.",
+    "dialogTitle": "WLAN-Sperrliste",
+    "warning": "WLAN „{{ssid}}“ steht auf der Sperrliste. Ein Start verbindet NetBird und Clash gleichzeitig mit diesem Netz.",
+    "no": "Nein",
+    "yes": "Ja"
+  },
+  "errors": {
+    "read": "NetBird konnte nicht gelesen werden",
+    "action": "Die NetBird-Anfrage ist fehlgeschlagen",
+    "lookup": "Das Serverprofil konnte nicht gesucht werden"
+  },
+  "srv": {
+    "thisServer": "diesen Server",
+    "saved": "{{url}} von _pixiu._tcp auf {{host}} wurde in das Abonnement übernommen.",
+    "savedNotCurrent": "{{url}} von _pixiu._tcp auf {{host}} wurde gespeichert. Das aktuelle Profil wurde nicht gewechselt.",
+    "missing": "Kein _pixiu._tcp-Eintrag auf {{host}}. Das Abonnement bleibt unverändert.",
+    "rejected": "Das _pixiu._tcp-Ziel auf {{host}} wurde abgelehnt. Das Abonnement bleibt unverändert.",
+    "transient": "Das Serverprofil konnte nicht gesucht werden. Das Abonnement bleibt unverändert.",
+    "unchanged": "Das Abonnement bleibt unverändert."
+  }
+}

@@ -36,6 +36,8 @@ pub struct ApplyReport {
     pub kind: String,
     pub message: String,
     pub url: String,
+    pub host: String,
+    pub current: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -204,14 +206,16 @@ pub async fn apply_server_profile() -> ApplyReport {
 }
 
 fn rejected(host: &str) -> ApplyReport {
-    report(
+    let mut result = report(
         false,
         "rejected",
         format!(
             "The _pixiu._tcp target on {host} was rejected because it points at an overlay, loopback, link-local, or other local address. The subscription was left unchanged."
         ),
         "",
-    )
+    );
+    result.host = host.to_string();
+    result
 }
 
 fn report(applied: bool, kind: &str, message: impl Into<String>, url: &str) -> ApplyReport {
@@ -220,6 +224,8 @@ fn report(applied: bool, kind: &str, message: impl Into<String>, url: &str) -> A
         kind: kind.to_string(),
         message: message.into(),
         url: url.to_string(),
+        host: String::new(),
+        current: false,
     }
 }
 
@@ -785,7 +791,10 @@ async fn write_profile(host: &str, url: &str, yaml: &str) -> ApplyReport {
             Err(err) => message.push_str(&format!(" The running config was not reloaded: {err:#}.")),
         }
     }
-    report(true, "written", message, url)
+    let mut written = report(true, "written", message, url);
+    written.host = host.to_string();
+    written.current = active;
+    written
 }
 
 async fn dns_servers(skip_iface: &str) -> Vec<SocketAddr> {
@@ -1337,16 +1346,13 @@ mod tests {
             .iter()
             .map(|item| (item.priority, item.weight, item.target.as_str(), item.port))
             .collect();
-        assert_eq!(
-            keys,
-            vec![
-                (0, 5, "a.example", 443),
-                (0, 5, "b.example", 443),
-                (0, 5, "b.example", 8443),
-                (0, 0, "b.example", 443),
-                (10, 50, "a.example", 443),
-            ]
-        );
+        assert_eq!(keys, vec![
+            (0, 5, "a.example", 443),
+            (0, 5, "b.example", 443),
+            (0, 5, "b.example", 8443),
+            (0, 0, "b.example", 443),
+            (10, 50, "a.example", 443),
+        ]);
     }
 
     #[test]
@@ -1383,37 +1389,34 @@ mod tests {
             .into_iter()
             .filter(|ip| !rejected_ip(*ip))
             .collect();
-        assert_eq!(
-            kept,
-            vec!["8.8.8.8".parse::<IpAddr>().unwrap(), "1.1.1.1".parse().unwrap()]
-        );
+        assert_eq!(kept, vec![
+            "8.8.8.8".parse::<IpAddr>().unwrap(),
+            "1.1.1.1".parse().unwrap()
+        ]);
 
         let resolvectl = "Global: 9.9.9.9\nLink 2 (enp0s3): 8.8.8.8\nLink 3 (wt0): 1.0.0.1 100.64.0.53\n";
-        assert_eq!(
-            nameservers_from_resolvectl(resolvectl, "wt0"),
-            vec!["9.9.9.9".parse::<IpAddr>().unwrap(), "8.8.8.8".parse().unwrap()]
-        );
+        assert_eq!(nameservers_from_resolvectl(resolvectl, "wt0"), vec![
+            "9.9.9.9".parse::<IpAddr>().unwrap(),
+            "8.8.8.8".parse().unwrap()
+        ]);
 
         let scutil = "resolver #1\n  nameserver[0] : 8.8.8.8\n  if_index : 12 (en0)\nresolver #2\n  nameserver[0] : 1.1.1.1\n  if_index : 15 (utun3)\n";
-        assert_eq!(
-            nameservers_from_scutil(scutil, "utun3"),
-            vec!["8.8.8.8".parse::<IpAddr>().unwrap()]
-        );
+        assert_eq!(nameservers_from_scutil(scutil, "utun3"), vec![
+            "8.8.8.8".parse::<IpAddr>().unwrap()
+        ]);
 
         let netsh = "Configuration for interface \"Ethernet\"\n    DNS servers configured through DHCP:  8.8.8.8\nConfiguration for interface \"wt0\"\n    Statically Configured DNS Servers:    1.2.3.4\n";
-        assert_eq!(
-            nameservers_from_netsh(netsh, "wt0"),
-            vec!["8.8.8.8".parse::<IpAddr>().unwrap()]
-        );
+        assert_eq!(nameservers_from_netsh(netsh, "wt0"), vec![
+            "8.8.8.8".parse::<IpAddr>().unwrap()
+        ]);
     }
 
     #[test]
     fn profile_plan_creates_updates_or_blocks() {
         assert_eq!(plan_profile(&[], None, false), ProfilePlan::Create { active: true });
-        assert_eq!(
-            plan_profile(&[], Some("local"), false),
-            ProfilePlan::Create { active: false }
-        );
+        assert_eq!(plan_profile(&[], Some("local"), false), ProfilePlan::Create {
+            active: false
+        });
         assert_eq!(plan_profile(&[], Some("local"), true), ProfilePlan::UidTaken);
         assert_eq!(
             plan_profile(&[("remote-1".into(), "remote-1.yaml".into())], Some("remote-1"), false),

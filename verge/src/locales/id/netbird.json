@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "Terhubung",
+    "connecting": "Menghubungkan",
+    "idle": "Siaga",
+    "needsLogin": "Perlu masuk",
+    "loginFailed": "Gagal masuk",
+    "sessionExpired": "Sesi kedaluwarsa",
+    "unknown": "Tidak diketahui",
+    "daemonDown": "Daemon NetBird tidak berjalan",
+    "version": "Daemon {{version}}",
+    "localPeer": "Peer ini",
+    "management": "Manajemen",
+    "signal": "Sinyal",
+    "online": "Daring",
+    "offline": "Luring"
+  },
+  "actions": {
+    "connect": "Hubungkan",
+    "disconnect": "Putuskan",
+    "useServerProfile": "Pakai profil server",
+    "lookingUp": "Mencari profil server…",
+    "openAdmin": "Buka admin"
+  },
+  "profiles": {
+    "label": "Profil"
+  },
+  "exitNodes": {
+    "label": "Node keluar",
+    "none": "Tanpa node keluar",
+    "empty": "Server manajemen ini tidak punya node keluar"
+  },
+  "peers": {
+    "title": "Peer",
+    "search": "Cari peer",
+    "all": "Semua",
+    "online": "Daring",
+    "offline": "Luring",
+    "empty": "Belum ada peer",
+    "emptyHint": "Peer muncul di sini setelah NetBird terhubung.",
+    "notConnected": "Hubungkan untuk melihat peer.",
+    "noResults": "Tidak ada peer yang cocok dengan pencarian.",
+    "key": "Kunci publik",
+    "received": "Diterima",
+    "sent": "Terkirim",
+    "path": "Jalur",
+    "relayed": "Lewat relay",
+    "direct": "Langsung",
+    "endpoint": "Titik akhir",
+    "networks": "Jaringan"
+  },
+  "networks": {
+    "title": "Jaringan",
+    "search": "Cari jaringan",
+    "empty": "Tidak ada jaringan",
+    "emptyHint": "Jaringan yang dirutekan muncul di sini setelah NetBird terhubung.",
+    "notConnected": "Hubungkan untuk melihat jaringan.",
+    "noResults": "Tidak ada jaringan yang cocok dengan pencarian.",
+    "enableAll": "Aktifkan semua",
+    "disableAll": "Nonaktifkan semua",
+    "selected": "Nyala",
+    "off": "Mati"
+  },
+  "blacklist": {
+    "label": "Daftar hitam Wi-Fi",
+    "helper": "Satu SSID per baris. Daftar kosong, jaringan lain, atau pemindaian gagal tidak memblokir.",
+    "dialogTitle": "Daftar hitam Wi-Fi",
+    "warning": "Wi-Fi \"{{ssid}}\" ada di daftar hitam. Memulai akan menghubungkan NetBird dan Clash ke jaringan itu.",
+    "no": "Tidak",
+    "yes": "Ya"
+  },
+  "errors": {
+    "read": "Tidak dapat membaca NetBird",
+    "action": "Permintaan NetBird gagal",
+    "lookup": "Tidak dapat mencari profil server"
+  },
+  "srv": {
+    "thisServer": "server ini",
+    "saved": "{{url}} dari _pixiu._tcp di {{host}} disimpan ke langganan.",
+    "savedNotCurrent": "{{url}} dari _pixiu._tcp di {{host}} disimpan. Profil yang aktif tidak diganti.",
+    "missing": "Tidak ada rekaman _pixiu._tcp di {{host}}. Langganan tidak diubah.",
+    "rejected": "Target _pixiu._tcp di {{host}} ditolak. Langganan tidak diubah.",
+    "transient": "Tidak dapat mencari profil server. Langganan tidak diubah.",
+    "unchanged": "Langganan tidak diubah."
+  }
+}

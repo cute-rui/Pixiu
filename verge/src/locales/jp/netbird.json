@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "接続済み",
+    "connecting": "接続中",
+    "idle": "待機",
+    "needsLogin": "ログインが必要",
+    "loginFailed": "ログイン失敗",
+    "sessionExpired": "セッションの期限切れ",
+    "unknown": "不明",
+    "daemonDown": "NetBird デーモンは動作していません",
+    "version": "デーモン {{version}}",
+    "localPeer": "このピア",
+    "management": "管理サーバー",
+    "signal": "シグナル",
+    "online": "オンライン",
+    "offline": "オフライン"
+  },
+  "actions": {
+    "connect": "接続",
+    "disconnect": "切断",
+    "useServerProfile": "サーバーのプロファイルを使う",
+    "lookingUp": "サーバーのプロファイルを検索しています…",
+    "openAdmin": "管理画面を開く"
+  },
+  "profiles": {
+    "label": "プロファイル"
+  },
+  "exitNodes": {
+    "label": "出口ノード",
+    "none": "出口ノードなし",
+    "empty": "この管理サーバーに出口ノードはありません"
+  },
+  "peers": {
+    "title": "ピア",
+    "search": "ピアを検索",
+    "all": "すべて",
+    "online": "オンライン",
+    "offline": "オフライン",
+    "empty": "ピアはまだありません",
+    "emptyHint": "NetBird に接続すると、ピアがここに表示されます。",
+    "notConnected": "ピアを見るには接続してください。",
+    "noResults": "検索に一致するピアはありません。",
+    "key": "公開鍵",
+    "received": "受信",
+    "sent": "送信",
+    "path": "経路",
+    "relayed": "リレー",
+    "direct": "直接",
+    "endpoint": "エンドポイント",
+    "networks": "ネットワーク"
+  },
+  "networks": {
+    "title": "ネットワーク",
+    "search": "ネットワークを検索",
+    "empty": "ネットワークはありません",
+    "emptyHint": "NetBird に接続すると、経路ネットワークがここに表示されます。",
+    "notConnected": "ネットワークを見るには接続してください。",
+    "noResults": "検索に一致するネットワークはありません。",
+    "enableAll": "すべて有効",
+    "disableAll": "すべて無効",
+    "selected": "オン",
+    "off": "オフ"
+  },
+  "blacklist": {
+    "label": "Wi-Fi ブラックリスト",
+    "helper": "SSID は1行に1つ。リストが空、別のネットワーク、またはスキャン失敗のときは遮断しません。",
+    "dialogTitle": "Wi-Fi ブラックリスト",
+    "warning": "Wi-Fi「{{ssid}}」はブラックリストにあります。開始すると NetBird と Clash の両方がそのネットワークに接続します。",
+    "no": "いいえ",
+    "yes": "はい"
+  },
+  "errors": {
+    "read": "NetBird を読み取れませんでした",
+    "action": "NetBird の要求に失敗しました",
+    "lookup": "サーバーのプロファイルを検索できませんでした"
+  },
+  "srv": {
+    "thisServer": "このサーバー",
+    "saved": "{{host}} の _pixiu._tcp から {{url}} を購読に保存しました。",
+    "savedNotCurrent": "{{host}} の _pixiu._tcp から {{url}} を保存しました。現在のプロファイルは切り替えていません。",
+    "missing": "{{host}} に _pixiu._tcp レコードがありません。購読は変更していません。",
+    "rejected": "{{host}} の _pixiu._tcp ターゲットは拒否されました。購読は変更していません。",
+    "transient": "サーバーのプロファイルを検索できませんでした。購読は変更していません。",
+    "unchanged": "購読は変更していません。"
+  }
+}

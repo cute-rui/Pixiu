@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "متصل",
+    "connecting": "جارٍ الاتصال",
+    "idle": "خامل",
+    "needsLogin": "يلزم تسجيل الدخول",
+    "loginFailed": "فشل تسجيل الدخول",
+    "sessionExpired": "انتهت الجلسة",
+    "unknown": "غير معروف",
+    "daemonDown": "خدمة NetBird لا تعمل",
+    "version": "الخدمة {{version}}",
+    "localPeer": "هذا النظير",
+    "management": "الإدارة",
+    "signal": "الإشارة",
+    "online": "متصل",
+    "offline": "غير متصل"
+  },
+  "actions": {
+    "connect": "اتصال",
+    "disconnect": "قطع الاتصال",
+    "useServerProfile": "استخدام ملف الخادم",
+    "lookingUp": "جارٍ البحث عن ملف الخادم…",
+    "openAdmin": "فتح الإدارة"
+  },
+  "profiles": {
+    "label": "الملف"
+  },
+  "exitNodes": {
+    "label": "عقدة الخروج",
+    "none": "بدون عقدة خروج",
+    "empty": "لا توجد عقد خروج على خادم الإدارة هذا"
+  },
+  "peers": {
+    "title": "النظراء",
+    "search": "البحث في النظراء",
+    "all": "الكل",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "empty": "لا يوجد نظراء بعد",
+    "emptyHint": "يظهر النظراء هنا بعد اتصال NetBird.",
+    "notConnected": "اتّصل لرؤية النظراء.",
+    "noResults": "لا يوجد نظراء مطابقون للبحث.",
+    "key": "المفتاح العام",
+    "received": "المستلم",
+    "sent": "المرسل",
+    "path": "المسار",
+    "relayed": "عبر مرحّل",
+    "direct": "مباشر",
+    "endpoint": "نقطة النهاية",
+    "networks": "الشبكات"
+  },
+  "networks": {
+    "title": "الشبكات",
+    "search": "البحث في الشبكات",
+    "empty": "لا توجد شبكات",
+    "emptyHint": "تظهر الشبكات الموجّهة هنا بعد اتصال NetBird.",
+    "notConnected": "اتّصل لرؤية الشبكات.",
+    "noResults": "لا توجد شبكات مطابقة للبحث.",
+    "enableAll": "تفعيل الكل",
+    "disableAll": "إيقاف الكل",
+    "selected": "تشغيل",
+    "off": "إيقاف"
+  },
+  "blacklist": {
+    "label": "قائمة حظر Wi-Fi",
+    "helper": "معرّف شبكة واحد في كل سطر. القائمة الفارغة أو شبكة أخرى أو فشل المسح لا يحجب شيئًا.",
+    "dialogTitle": "قائمة حظر Wi-Fi",
+    "warning": "شبكة Wi-Fi «{{ssid}}» في قائمة الحظر. البدء يصل NetBird وClash معًا بتلك الشبكة.",
+    "no": "لا",
+    "yes": "نعم"
+  },
+  "errors": {
+    "read": "تعذّر قراءة NetBird",
+    "action": "فشل طلب NetBird",
+    "lookup": "تعذّر البحث عن ملف الخادم"
+  },
+  "srv": {
+    "thisServer": "هذا الخادم",
+    "saved": "حُفظ {{url}} من _pixiu._tcp على {{host}} في الاشتراك.",
+    "savedNotCurrent": "حُفظ {{url}} من _pixiu._tcp على {{host}}. لم يُبدَّل الملف الحالي.",
+    "missing": "لا يوجد سجل _pixiu._tcp على {{host}}. بقي الاشتراك كما هو.",
+    "rejected": "رُفض هدف _pixiu._tcp على {{host}}. بقي الاشتراك كما هو.",
+    "transient": "تعذّر البحث عن ملف الخادم. بقي الاشتراك كما هو.",
+    "unchanged": "بقي الاشتراك كما هو."
+  }
+}

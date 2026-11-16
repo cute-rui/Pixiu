@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "已連線",
+    "connecting": "連線中",
+    "idle": "閒置",
+    "needsLogin": "需要登入",
+    "loginFailed": "登入失敗",
+    "sessionExpired": "工作階段已過期",
+    "unknown": "未知",
+    "daemonDown": "NetBird 守護行程未執行",
+    "version": "守護行程 {{version}}",
+    "localPeer": "本機節點",
+    "management": "管理服務",
+    "signal": "訊號服務",
+    "online": "在線",
+    "offline": "離線"
+  },
+  "actions": {
+    "connect": "連線",
+    "disconnect": "中斷",
+    "useServerProfile": "使用伺服器訂閱",
+    "lookingUp": "正在查詢伺服器訂閱…",
+    "openAdmin": "開啟管理頁"
+  },
+  "profiles": {
+    "label": "設定檔"
+  },
+  "exitNodes": {
+    "label": "出口節點",
+    "none": "不使用出口節點",
+    "empty": "這台管理伺服器沒有出口節點"
+  },
+  "peers": {
+    "title": "對等節點",
+    "search": "搜尋對等節點",
+    "all": "全部",
+    "online": "在線",
+    "offline": "離線",
+    "empty": "還沒有對等節點",
+    "emptyHint": "NetBird 連線後，對等節點會顯示在這裡。",
+    "notConnected": "連線後才能查看對等節點。",
+    "noResults": "沒有符合搜尋條件的對等節點。",
+    "key": "公鑰",
+    "received": "接收",
+    "sent": "傳送",
+    "path": "路徑",
+    "relayed": "中繼",
+    "direct": "直連",
+    "endpoint": "端點",
+    "networks": "網路"
+  },
+  "networks": {
+    "title": "網路",
+    "search": "搜尋網路",
+    "empty": "沒有網路",
+    "emptyHint": "NetBird 連線後，路由網路會顯示在這裡。",
+    "notConnected": "連線後才能查看網路。",
+    "noResults": "沒有符合搜尋條件的網路。",
+    "enableAll": "全部啟用",
+    "disableAll": "全部停用",
+    "selected": "開",
+    "off": "關"
+  },
+  "blacklist": {
+    "label": "Wi-Fi 黑名單",
+    "helper": "每行一個 SSID。名單是空的、目前是其他網路，或掃描失敗時都不會攔截。",
+    "dialogTitle": "Wi-Fi 黑名單",
+    "warning": "Wi-Fi「{{ssid}}」在黑名單中。繼續啟動會讓 NetBird 和 Clash 同時連上這個網路。",
+    "no": "否",
+    "yes": "是"
+  },
+  "errors": {
+    "read": "無法讀取 NetBird",
+    "action": "NetBird 請求失敗",
+    "lookup": "無法查詢伺服器訂閱"
+  },
+  "srv": {
+    "thisServer": "這台伺服器",
+    "saved": "已把 {{host}} 上 _pixiu._tcp 的 {{url}} 寫入訂閱。",
+    "savedNotCurrent": "已儲存 {{host}} 上 _pixiu._tcp 的 {{url}}。目前的設定檔沒有切換。",
+    "missing": "{{host}} 上沒有 _pixiu._tcp 記錄。訂閱保持不變。",
+    "rejected": "{{host}} 上的 _pixiu._tcp 目標被拒絕。訂閱保持不變。",
+    "transient": "無法查詢伺服器訂閱。訂閱保持不變。",
+    "unchanged": "訂閱保持不變。"
+  }
+}

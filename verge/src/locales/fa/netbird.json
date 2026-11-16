@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "متصل",
+    "connecting": "در حال اتصال",
+    "idle": "آماده",
+    "needsLogin": "ورود لازم است",
+    "loginFailed": "ورود ناموفق بود",
+    "sessionExpired": "نشست منقضی شد",
+    "unknown": "ناشناخته",
+    "daemonDown": "سرویس NetBird در حال اجرا نیست",
+    "version": "سرویس {{version}}",
+    "localPeer": "این همتا",
+    "management": "مدیریت",
+    "signal": "سیگنال",
+    "online": "آنلاین",
+    "offline": "آفلاین"
+  },
+  "actions": {
+    "connect": "اتصال",
+    "disconnect": "قطع",
+    "useServerProfile": "استفاده از نمایهٔ سرور",
+    "lookingUp": "در حال یافتن نمایهٔ سرور…",
+    "openAdmin": "باز کردن مدیریت"
+  },
+  "profiles": {
+    "label": "نمایه"
+  },
+  "exitNodes": {
+    "label": "گرهٔ خروجی",
+    "none": "بدون گرهٔ خروجی",
+    "empty": "این سرور مدیریت گرهٔ خروجی ندارد"
+  },
+  "peers": {
+    "title": "همتاها",
+    "search": "جستجوی همتا",
+    "all": "همه",
+    "online": "آنلاین",
+    "offline": "آفلاین",
+    "empty": "هنوز همتایی نیست",
+    "emptyHint": "پس از اتصال NetBird، همتاها اینجا دیده می‌شوند.",
+    "notConnected": "برای دیدن همتاها متصل شوید.",
+    "noResults": "همتایی با این جستجو پیدا نشد.",
+    "key": "کلید عمومی",
+    "received": "دریافت",
+    "sent": "ارسال",
+    "path": "مسیر",
+    "relayed": "از راه رله",
+    "direct": "مستقیم",
+    "endpoint": "نقطهٔ پایانی",
+    "networks": "شبکه‌ها"
+  },
+  "networks": {
+    "title": "شبکه‌ها",
+    "search": "جستجوی شبکه",
+    "empty": "شبکه‌ای نیست",
+    "emptyHint": "پس از اتصال NetBird، شبکه‌های مسیریابی‌شده اینجا دیده می‌شوند.",
+    "notConnected": "برای دیدن شبکه‌ها متصل شوید.",
+    "noResults": "شبکه‌ای با این جستجو پیدا نشد.",
+    "enableAll": "فعال‌کردن همه",
+    "disableAll": "غیرفعال‌کردن همه",
+    "selected": "روشن",
+    "off": "خاموش"
+  },
+  "blacklist": {
+    "label": "فهرست سیاه وای‌فای",
+    "helper": "هر SSID در یک خط. فهرست خالی، شبکهٔ دیگر، یا شکست اسکن چیزی را مسدود نمی‌کند.",
+    "dialogTitle": "فهرست سیاه وای‌فای",
+    "warning": "وای‌فای «{{ssid}}» در فهرست سیاه است. شروع، NetBird و Clash را با هم به آن شبکه وصل می‌کند.",
+    "no": "نه",
+    "yes": "بله"
+  },
+  "errors": {
+    "read": "NetBird خوانده نشد",
+    "action": "درخواست NetBird ناموفق بود",
+    "lookup": "نمایهٔ سرور پیدا نشد"
+  },
+  "srv": {
+    "thisServer": "این سرور",
+    "saved": "{{url}} از _pixiu._tcp روی {{host}} در اشتراک ذخیره شد.",
+    "savedNotCurrent": "{{url}} از _pixiu._tcp روی {{host}} ذخیره شد. نمایهٔ فعلی عوض نشد.",
+    "missing": "رکورد _pixiu._tcp روی {{host}} نیست. اشتراک تغییر نکرد.",
+    "rejected": "مقصد _pixiu._tcp روی {{host}} رد شد. اشتراک تغییر نکرد.",
+    "transient": "نمایهٔ سرور پیدا نشد. اشتراک تغییر نکرد.",
+    "unchanged": "اشتراک تغییر نکرد."
+  }
+}

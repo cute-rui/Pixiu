@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "NetBird"
+  },
+  "status": {
+    "connected": "Bağlı",
+    "connecting": "Bağlanıyor",
+    "idle": "Beklemede",
+    "needsLogin": "Oturum açmak gerekiyor",
+    "loginFailed": "Oturum açılamadı",
+    "sessionExpired": "Oturum süresi doldu",
+    "unknown": "Bilinmiyor",
+    "daemonDown": "NetBird hizmeti çalışmıyor",
+    "version": "Hizmet {{version}}",
+    "localPeer": "Bu eş",
+    "management": "Yönetim",
+    "signal": "Sinyal",
+    "online": "Çevrimiçi",
+    "offline": "Çevrimdışı"
+  },
+  "actions": {
+    "connect": "Bağlan",
+    "disconnect": "Bağlantıyı kes",
+    "useServerProfile": "Sunucu profilini kullan",
+    "lookingUp": "Sunucu profili aranıyor…",
+    "openAdmin": "Yönetimi aç"
+  },
+  "profiles": {
+    "label": "Profil"
+  },
+  "exitNodes": {
+    "label": "Çıkış düğümü",
+    "none": "Çıkış düğümü yok",
+    "empty": "Bu yönetim sunucusunda çıkış düğümü yok"
+  },
+  "peers": {
+    "title": "Eşler",
+    "search": "Eş ara",
+    "all": "Tümü",
+    "online": "Çevrimiçi",
+    "offline": "Çevrimdışı",
+    "empty": "Henüz eş yok",
+    "emptyHint": "NetBird bağlanınca eşler burada görünür.",
+    "notConnected": "Eşleri görmek için bağlanın.",
+    "noResults": "Aramayla eşleşen eş yok.",
+    "key": "Açık anahtar",
+    "received": "Alınan",
+    "sent": "Gönderilen",
+    "path": "Yol",
+    "relayed": "Röleli",
+    "direct": "Doğrudan",
+    "endpoint": "Uç nokta",
+    "networks": "Ağlar"
+  },
+  "networks": {
+    "title": "Ağlar",
+    "search": "Ağ ara",
+    "empty": "Ağ yok",
+    "emptyHint": "NetBird bağlanınca yönlendirilen ağlar burada görünür.",
+    "notConnected": "Ağları görmek için bağlanın.",
+    "noResults": "Aramayla eşleşen ağ yok.",
+    "enableAll": "Tümünü aç",
+    "disableAll": "Tümünü kapat",
+    "selected": "Açık",
+    "off": "Kapalı"
+  },
+  "blacklist": {
+    "label": "Wi-Fi kara listesi",
+    "helper": "Her satıra bir SSID. Liste boşsa, başka bir ağdaysanız veya tarama başarısızsa engelleme olmaz.",
+    "dialogTitle": "Wi-Fi kara listesi",
+    "warning": "\"{{ssid}}\" Wi-Fi ağı kara listede. Başlatmak NetBird ve Clash'i o ağa birlikte bağlar.",
+    "no": "Hayır",
+    "yes": "Evet"
+  },
+  "errors": {
+    "read": "NetBird okunamadı",
+    "action": "NetBird isteği başarısız oldu",
+    "lookup": "Sunucu profili aranamadı"
+  },
+  "srv": {
+    "thisServer": "bu sunucu",
+    "saved": "{{host}} üzerindeki _pixiu._tcp kaydından {{url}} aboneliğe yazıldı.",
+    "savedNotCurrent": "{{host}} üzerindeki _pixiu._tcp kaydından {{url}} kaydedildi. Geçerli profil değiştirilmedi.",
+    "missing": "{{host}} üzerinde _pixiu._tcp kaydı yok. Abonelik değişmedi.",
+    "rejected": "{{host}} üzerindeki _pixiu._tcp hedefi reddedildi. Abonelik değişmedi.",
+    "transient": "Sunucu profili aranamadı. Abonelik değişmedi.",
+    "unchanged": "Abonelik değişmedi."
+  }
+}
