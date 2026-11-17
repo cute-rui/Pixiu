@@ -86,31 +86,42 @@ func isYAMLDocument(b []byte) bool {
 }
 
 func buildRuntime(doc map[string]any) (*Runtime, error) {
+	// Providers would fetch a second subscription. Nodes come only from proxies.
+	delete(doc, "proxy-providers")
+	delete(doc, "rule-providers")
+	delete(doc, "sub-rules")
+
 	proxies := mapSlice(doc["proxies"])
 	concrete := concreteProxies(proxies)
 	if len(concrete) == 0 {
 		return nil, errNoProxies
 	}
 
+	groups := mapSlice(doc["proxy-groups"])
+	for _, g := range groups {
+		delete(g, "use")
+	}
+
 	groupName := ""
 	var nodes []Node
-	groups := mapSlice(doc["proxy-groups"])
 	for _, g := range groups {
 		if !strings.EqualFold(str(g["type"]), "select") {
 			continue
 		}
-		groupName = str(g["name"])
-		if groupName == "" {
+		name := str(g["name"])
+		if name == "" {
 			continue
 		}
-		nodes = nodesForNames(stringList(g["proxies"]), concrete)
+		found := nodesForNames(stringList(g["proxies"]), concrete)
+		if len(found) == 0 {
+			continue
+		}
+		groupName = name
+		nodes = found
 		break
 	}
 
-	if groupName == "" || len(nodes) == 0 {
-		if groupName != "" && len(nodes) == 0 {
-			return nil, errNoProxies
-		}
+	if groupName == "" {
 		names := make([]any, 0, len(concrete))
 		nodes = make([]Node, 0, len(concrete))
 		for _, p := range concrete {
@@ -125,7 +136,8 @@ func buildRuntime(doc map[string]any) (*Runtime, error) {
 		doc["proxy-groups"] = groups
 		doc["rules"] = []any{"MATCH,Pixiu"}
 		groupName = "Pixiu"
-	} else if len(stringList(doc["rules"])) == 0 && len(mapSlice(doc["rules"])) == 0 {
+	}
+	if rulesNeedReset(doc["rules"]) || len(stringList(doc["rules"])) == 0 {
 		doc["rules"] = []any{"MATCH," + groupName}
 	}
 
@@ -145,6 +157,29 @@ func buildRuntime(doc map[string]any) (*Runtime, error) {
 		return nil, err
 	}
 	return &Runtime{YAML: out, Group: groupName, Nodes: nodes}, nil
+}
+
+func rulesNeedReset(rules any) bool {
+	seq, ok := rules.([]any)
+	if rules != nil && !ok {
+		if _, isString := rules.(string); !isString {
+			return true
+		}
+	}
+	for _, rule := range stringList(rules) {
+		upper := strings.ToUpper(strings.TrimSpace(rule))
+		if strings.HasPrefix(upper, "GEOIP,") || strings.HasPrefix(upper, "GEOSITE,") || strings.HasPrefix(upper, "RULE-SET,") {
+			return true
+		}
+	}
+	if ok {
+		for _, item := range seq {
+			if _, isString := item.(string); !isString {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func concreteProxies(items []map[string]any) []Node {

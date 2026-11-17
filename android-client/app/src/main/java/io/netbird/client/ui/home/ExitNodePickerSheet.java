@@ -2,6 +2,9 @@ package io.netbird.client.ui.home;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,7 +28,9 @@ import io.netbird.client.R;
 import io.netbird.client.ServiceAccessor;
 import io.netbird.client.databinding.SheetExitNodePickerBinding;
 import io.netbird.client.tool.CoalescingWorker;
+import io.netbird.client.tool.PixiuSrvSync;
 import io.netbird.client.tool.Preferences;
+import io.netbird.client.tool.SrvAdoption;
 import io.netbird.gomobile.android.NetworkArray;
 
 /**
@@ -43,6 +48,12 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
     private final List<ExitNodePickerAdapter.Entry> mihomoEntries = new ArrayList<>();
     private ExitNodePickerAdapter adapter;
     private ExitNodePickerAdapter mihomoAdapter;
+    private KeyListener subscriptionKeys;
+    private boolean srvReadOnly;
+    private boolean subscriptionEdited;
+    private boolean renderingSrv;
+    private int appliedSrvGeneration = -1;
+    private final Runnable srvListener = this::renderSrv;
     // getNetworks() is a JNI call into Go; keep it off the main thread.
     private final CoalescingWorker exitNodesLoader = new CoalescingWorker("nb-exit-node-picker", this::loadExitNodes);
 
@@ -77,27 +88,49 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
         binding.mihomoNodes.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.mihomoNodes.setAdapter(mihomoAdapter);
 
-        binding.mihomoSubscription.setText(preferences.getPixiuSubscription());
+        subscriptionKeys = binding.mihomoSubscription.getKeyListener();
+        binding.mihomoSubscription.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (!renderingSrv) {
+                    subscriptionEdited = true;
+                }
+            }
+        });
         binding.wifiBlacklist.setText(preferences.getWifiBlacklist());
         binding.tabNetbird.setOnClickListener(v -> showNetBird(true));
         binding.tabMihomo.setOnClickListener(v -> showMihomo());
         binding.mihomoUpdate.setOnClickListener(v -> updateSubscription());
+        binding.mihomoUseServer.setOnClickListener(v -> useServerProfile());
         binding.wifiBlacklist.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 preferences.setWifiBlacklist(binding.wifiBlacklist.getText().toString());
             }
         });
 
+        PixiuSrvSync.listen(srvListener);
         showNetBird(false);
         exitNodesLoader.request();
-        showMihomoStatus(getString(R.string.mihomo_empty), false);
+        renderSrv();
+        requestSrvSync(SrvAdoption.PANEL);
     }
 
     @Override
     public void onDestroyView() {
+        PixiuSrvSync.unlisten(srvListener);
         if (binding != null) {
             preferences.setWifiBlacklist(binding.wifiBlacklist.getText().toString());
-            preferences.setPixiuSubscription(binding.mihomoSubscription.getText().toString().trim());
+            if (subscriptionEdited && !srvReadOnly) {
+                preferences.setUserSubscription(binding.mihomoSubscription.getText().toString().trim());
+            }
         }
         super.onDestroyView();
         binding = null;
@@ -127,6 +160,7 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
     private void showMihomo() {
         binding.netbirdPanel.setVisibility(View.GONE);
         binding.mihomoPanel.setVisibility(View.VISIBLE);
+        renderSrv();
     }
 
     private void loadExitNodes() {
@@ -193,43 +227,98 @@ public class ExitNodePickerSheet extends BottomSheetDialogFragment {
     }
 
     private void updateSubscription() {
-        String url = binding.mihomoSubscription.getText().toString().trim();
-        preferences.setPixiuSubscription(url);
-        showMihomoStatus(getString(R.string.mihomo_loading), true);
-        new Thread(() -> {
-            try {
-                String json = serviceAccessor.pixiuUpdateSubscription(url);
-                List<ExitNodePickerAdapter.Entry> nodes = parseNodes(json);
-                if (!isAdded()) {
-                    return;
-                }
-                requireActivity().runOnUiThread(() -> {
-                    if (binding == null) {
-                        return;
-                    }
-                    mihomoEntries.clear();
-                    mihomoEntries.add(new ExitNodePickerAdapter.Entry(null, getString(R.string.exit_node_picker_none), preferences.getPixiuNode().isEmpty()));
-                    mihomoEntries.addAll(nodes);
-                    mihomoAdapter.notifyDataSetChanged();
-                    if (nodes.isEmpty()) {
-                        showMihomoStatus(getString(R.string.mihomo_empty), false);
-                    } else {
-                        showMihomoStatus("", false);
-                    }
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "subscription update failed", e);
-                if (!isAdded()) {
-                    return;
-                }
-                requireActivity().runOnUiThread(() -> {
-                    if (binding == null) {
-                        return;
-                    }
-                    showMihomoStatus(getString(R.string.mihomo_failed, e.getMessage()), false);
-                });
+        if (binding == null) {
+            return;
+        }
+        if (!srvReadOnly) {
+            String typed = binding.mihomoSubscription.getText().toString().trim();
+            if (!typed.equals(preferences.getPixiuSubscription())) {
+                preferences.setUserSubscription(typed);
             }
-        }).start();
+        }
+        subscriptionEdited = false;
+        showMihomoStatus(getString(R.string.mihomo_looking_up), true);
+        requestSrvSync(SrvAdoption.EXPLICIT);
+    }
+
+    private void useServerProfile() {
+        showMihomoStatus(getString(R.string.mihomo_looking_up), true);
+        requestSrvSync(SrvAdoption.USE_SERVER);
+    }
+
+    private void requestSrvSync(int trigger) {
+        if (serviceAccessor == null) {
+            return;
+        }
+        serviceAccessor.syncPixiuSubscription(trigger, this::renderSrv);
+    }
+
+    private void renderSrv() {
+        if (binding == null || !isAdded()) {
+            return;
+        }
+        PixiuSrvSync.State state = PixiuSrvSync.state();
+        String url = preferences.getPixiuSubscription();
+        boolean readOnly = "srv".equals(preferences.getPixiuSubscriptionSource()) && !url.isEmpty();
+        srvReadOnly = readOnly;
+        if (readOnly || (!subscriptionEdited && !binding.mihomoSubscription.hasFocus())) {
+            if (!url.contentEquals(binding.mihomoSubscription.getText())) {
+                renderingSrv = true;
+                try {
+                    binding.mihomoSubscription.setText(url);
+                } finally {
+                    renderingSrv = false;
+                }
+            }
+        }
+        if (readOnly) {
+            binding.mihomoSubscription.setKeyListener(null);
+            binding.mihomoSubscription.setFocusable(false);
+            binding.mihomoSubscription.setCursorVisible(false);
+            binding.mihomoSrvNote.setText(getString(R.string.mihomo_srv_from, preferences.getPixiuSubscriptionSrvHost()));
+            binding.mihomoSrvNote.setVisibility(View.VISIBLE);
+        } else {
+            binding.mihomoSubscription.setKeyListener(subscriptionKeys);
+            binding.mihomoSubscription.setFocusable(true);
+            binding.mihomoSubscription.setFocusableInTouchMode(true);
+            binding.mihomoSubscription.setCursorVisible(true);
+            if (state.offer && !state.offerUrl.isEmpty()) {
+                binding.mihomoSrvNote.setText(getString(R.string.mihomo_srv_offer, state.offerUrl));
+                binding.mihomoSrvNote.setVisibility(View.VISIBLE);
+            } else {
+                binding.mihomoSrvNote.setVisibility(View.GONE);
+            }
+        }
+        boolean showUseServer = state.offer && !state.loading && !readOnly && !state.offerUrl.isEmpty();
+        binding.mihomoUseServer.setVisibility(showUseServer ? View.VISIBLE : View.GONE);
+        binding.mihomoUseServer.setEnabled(!state.loading);
+
+        if (state.nodesJson != null && state.generation != appliedSrvGeneration) {
+            appliedSrvGeneration = state.generation;
+            try {
+                List<ExitNodePickerAdapter.Entry> nodes = parseNodes(state.nodesJson);
+                mihomoEntries.clear();
+                mihomoEntries.add(new ExitNodePickerAdapter.Entry(null, getString(R.string.exit_node_picker_none), preferences.getPixiuNode().isEmpty()));
+                mihomoEntries.addAll(nodes);
+                mihomoAdapter.notifyDataSetChanged();
+            } catch (Exception e) {
+                Log.e(TAG, "subscription node list failed", e);
+            }
+        }
+
+        if (state.loading) {
+            showMihomoStatus(getString(R.string.mihomo_looking_up), true);
+        } else if (!state.error.isEmpty()) {
+            showMihomoStatus(getString(R.string.mihomo_failed, state.error), false);
+        } else if (state.wrote) {
+            showMihomoStatus(getString(R.string.mihomo_srv_saved, state.wroteUrl, state.wroteHost), false);
+        } else if (!state.message.isEmpty()) {
+            showMihomoStatus(state.message, false);
+        } else if (mihomoEntries.size() <= 1) {
+            showMihomoStatus(getString(R.string.mihomo_empty), false);
+        } else {
+            showMihomoStatus("", false);
+        }
     }
 
     private void handleMihomoPick(ExitNodePickerAdapter.Entry entry) {

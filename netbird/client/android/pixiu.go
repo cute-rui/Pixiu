@@ -29,6 +29,13 @@ func (c *Client) PixiuUpdateSubscription(url string) (string, error) {
 	return pixiu.UpdateSubscription(context.Background(), url)
 }
 
+// PixiuDiscoverSubscription looks up _pixiu._tcp.<management host>.
+// dnsServers is one non-tunnel resolver address per line. The JSON result
+// describes the profile URL; it does not write the subscription slot.
+func (c *Client) PixiuDiscoverSubscription(managementURL, dnsServers string) (string, error) {
+	return pixiu.DiscoverSubscription(context.Background(), managementURL, dnsServers)
+}
+
 // PixiuSelectNode switches the Mihomo exit to name.
 func (c *Client) PixiuSelectNode(name string) error {
 	return pixiu.SelectNode(name)

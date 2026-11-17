@@ -173,8 +173,13 @@
     <string name="mihomo_subscription_hint">Subscription URL</string>
     <string name="mihomo_update">Update</string>
     <string name="mihomo_loading">Updating subscription…</string>
+    <string name="mihomo_looking_up">Looking up server profile…</string>
     <string name="mihomo_empty">No nodes yet. Update the subscription.</string>
     <string name="mihomo_failed">Could not update the subscription: %1$s</string>
+    <string name="mihomo_use_server">Use server profile</string>
+    <string name="mihomo_srv_from">Profile from _pixiu._tcp on %1$s</string>
+    <string name="mihomo_srv_offer">This server publishes %1$s. The subscription you saved is still in use.</string>
+    <string name="mihomo_srv_saved">Saved %1$s from _pixiu._tcp on %2$s into the subscription.</string>
     <string name="wifi_blacklist_hint">Wi-Fi blacklist, one SSID per line</string>
 
     <string name="change_server_setup_key">Add this device with a setup key</string>

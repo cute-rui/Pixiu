@@ -125,6 +125,7 @@ public class VPNService extends android.net.VpnService {
         // events alone would leave it stuck at the online default when the
         // service starts while the device has no network (e.g. airplane mode).
         engineRunner.setNetworkAvailable(networkChangeDetector.hasInternetConnectivity());
+        syncPixiuSubscription(SrvAdoption.AUTO, null);
 
         // Register broadcast receiver for stopping engine (e.g., during profile switch)
         stopEngineReceiver = new android.content.BroadcastReceiver() {
@@ -197,6 +198,23 @@ public class VPNService extends android.net.VpnService {
             fgNotification.setState(ForegroundNotification.State.CONNECTING);
         }
         engineRunner.restart();
+        syncPixiuSubscription(SrvAdoption.AUTO, null);
+    }
+
+    private void syncPixiuSubscription(int trigger, Runnable done) {
+        if (engineRunner == null) {
+            if (done != null) {
+                done.run();
+            }
+            return;
+        }
+        engineRunner.syncPixiuSubscription(trigger, this::clearPixiuNode, done);
+    }
+
+    private void clearPixiuNode() {
+        engineRunner.pixiuClearNode();
+        IFace.setMihomoDefaultRoute(false);
+        queueTUNRenewal(true);
     }
 
     @Override
@@ -431,6 +449,10 @@ public class VPNService extends android.net.VpnService {
             return engineRunner.pixiuUpdateSubscription(url);
         }
 
+        public void syncPixiuSubscription(int trigger, Runnable done) {
+            VPNService.this.syncPixiuSubscription(trigger, done);
+        }
+
         public void pixiuSelectNode(String name) throws Exception {
             engineRunner.pixiuSelectNode(name);
             IFace.setMihomoDefaultRoute(true);
@@ -438,9 +460,7 @@ public class VPNService extends android.net.VpnService {
         }
 
         public void pixiuClearNode() {
-            engineRunner.pixiuClearNode();
-            IFace.setMihomoDefaultRoute(false);
-            queueTUNRenewal(true);
+            clearPixiuNode();
         }
 
         public SSHClient newSSHClient() {

@@ -29,6 +29,10 @@ public interface ServiceAccessor {
     void deselectRoute(String route) throws Exception;
 
     String pixiuUpdateSubscription(String url) throws Exception;
+
+    /** Looks up _pixiu._tcp and maybe writes the one subscription slot. */
+    void syncPixiuSubscription(int trigger, Runnable done);
+
     void pixiuSelectNode(String name) throws Exception;
     void pixiuClearNode();
 

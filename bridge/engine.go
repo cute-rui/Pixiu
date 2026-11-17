@@ -16,13 +16,14 @@ import (
 
 // Engine runs one in-process Mihomo and hot-reloads a single subscription.
 type Engine struct {
-	mu       sync.Mutex
-	protect  ProtectFunc
-	runtime  *Runtime
-	selected string
-	group    string
-	running  bool
-	packets  io.Writer
+	mu         sync.Mutex
+	protect    ProtectFunc
+	profileDNS []string
+	runtime    *Runtime
+	selected   string
+	group      string
+	running    bool
+	packets    io.Writer
 }
 
 // SetProtectFunc installs the platform hook used while fetching a subscription
@@ -30,6 +31,21 @@ type Engine struct {
 func (e *Engine) SetProtectFunc(fn ProtectFunc) {
 	e.mu.Lock()
 	e.protect = fn
+	e.mu.Unlock()
+}
+
+// Protect is the hook installed by SetProtectFunc.
+func (e *Engine) Protect() ProtectFunc {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.protect
+}
+
+// SetProfileDNS remembers resolvers that are not the tunnel DNS. The next
+// subscription fetch uses them so the lookup does not follow Mihomo.
+func (e *Engine) SetProfileDNS(servers []string) {
+	e.mu.Lock()
+	e.profileDNS = append([]string(nil), servers...)
 	e.mu.Unlock()
 }
 
@@ -62,9 +78,10 @@ func (e *Engine) UpdateSubscription(ctx context.Context, rawURL string) (string,
 	e.mu.Lock()
 	protect := e.protect
 	prev := e.selected
+	dnsServers := append([]string(nil), e.profileDNS...)
 	e.mu.Unlock()
 
-	body, err := fetchSubscription(ctx, rawURL, protect, nil)
+	body, err := fetchSubscription(ctx, rawURL, protect, nil, dnsServers)
 	if err != nil {
 		return "", err
 	}

@@ -23,7 +23,9 @@ import java.util.List;
 import io.netbird.client.R;
 import io.netbird.client.databinding.SheetProfilePickerBinding;
 import io.netbird.client.tool.Profile;
+import io.netbird.client.ServiceAccessor;
 import io.netbird.client.tool.ProfileManagerWrapper;
+import io.netbird.client.tool.SrvAdoption;
 import io.netbird.client.ui.profile.ProfileEditorDialog;
 import io.netbird.client.ui.profile.ProfileUsageTracker;
 
@@ -133,6 +135,9 @@ public class ProfilePickerSheet extends BottomSheetDialogFragment {
         try {
             profileManager.switchProfile(profile.getID());
             usageTracker.markUsed(profile.getID());
+            if (getActivity() instanceof ServiceAccessor) {
+                ((ServiceAccessor) getActivity()).syncPixiuSubscription(SrvAdoption.AUTO, null);
+            }
 
             if (getParentFragment() instanceof OnProfileSwitchedListener) {
                 ((OnProfileSwitchedListener) getParentFragment()).onProfileSwitched(profile.getName());

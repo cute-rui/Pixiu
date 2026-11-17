@@ -86,6 +86,72 @@ func TestBuildRuntimeInvalid(t *testing.T) {
 	}
 }
 
+func TestBuildRuntimeStripsProvidersAndGeoRules(t *testing.T) {
+	raw := []byte(`
+proxies:
+  - {name: exit, type: ss, server: 100.64.0.8, port: 443}
+proxy-groups:
+  - name: Empty
+    type: select
+    proxies: []
+  - name: Proxy
+    type: select
+    proxies: [exit]
+    use: [remote-set]
+proxy-providers:
+  remote-set: {type: http, url: https://example.invalid/providers}
+rule-providers:
+  geos: {type: http, url: https://example.invalid/rules}
+sub-rules:
+  extra: []
+rules:
+  - GEOIP,CN,DIRECT
+  - RULE-SET,geos,DIRECT
+  - MATCH,Proxy
+`)
+	rt, err := ParseSubscription(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rt.Group != "Proxy" || len(rt.Nodes) != 1 || rt.Nodes[0].Name != "exit" {
+		t.Fatalf("runtime %+v", rt)
+	}
+	var doc map[string]any
+	if err := yaml.Unmarshal(rt.YAML, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := doc["proxy-providers"]; ok {
+		t.Fatal("proxy-providers survived")
+	}
+	if _, ok := doc["rule-providers"]; ok {
+		t.Fatal("rule-providers survived")
+	}
+	if _, ok := doc["sub-rules"]; ok {
+		t.Fatal("sub-rules survived")
+	}
+	rules, _ := doc["rules"].([]any)
+	if len(rules) != 1 || rules[0] != "MATCH,Proxy" {
+		t.Fatalf("rules %#v", doc["rules"])
+	}
+	groups, _ := doc["proxy-groups"].([]any)
+	var proxy map[string]any
+	for _, item := range groups {
+		group, _ := item.(map[string]any)
+		if group["name"] == "Proxy" {
+			proxy = group
+		}
+	}
+	if proxy == nil {
+		t.Fatal("Proxy group missing")
+	}
+	if _, ok := proxy["use"]; ok {
+		t.Fatal("provider use survived")
+	}
+	if doc["geo-auto-update"] != false {
+		t.Fatalf("geo-auto-update %#v", doc["geo-auto-update"])
+	}
+}
+
 func TestBuildRuntimeNoProxies(t *testing.T) {
 	raw := []byte("proxies: []\nrules:\n  - MATCH,DIRECT\n")
 	if _, err := ParseSubscription(raw); err == nil || !strings.Contains(err.Error(), "no proxies") {

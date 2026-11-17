@@ -25,7 +25,9 @@ import io.netbird.client.R;
 import io.netbird.client.databinding.FragmentFirstinstallBinding;
 import io.netbird.client.tool.MDMBridge;
 import io.netbird.client.tool.MDMRestrictions;
+import io.netbird.client.ServiceAccessor;
 import io.netbird.client.tool.ProfileManagerWrapper;
+import io.netbird.client.tool.SrvAdoption;
 import io.netbird.client.ui.MDMLock;
 import io.netbird.client.ui.PreferenceUI;
 import io.netbird.client.ui.server.ManagementServerSwitch;
@@ -204,6 +206,9 @@ public class FirstInstallFragment extends Fragment {
             Preferences preferences = MDMBridge.openPreferences(requireContext(), configPath);
             preferences.setManagementURL(managementUrl);
             preferences.commit();
+            if (getActivity() instanceof ServiceAccessor) {
+                ((ServiceAccessor) getActivity()).syncPixiuSubscription(SrvAdoption.AUTO, null);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to save management URL", e);
             binding.editTextServerUrl.setError(getString(R.string.profiles_dialog_url_invalid));

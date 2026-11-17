@@ -163,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements ServiceAccessor, 
                 pendingExtendRequest = false;
                 extendSession();
             }
+            mBinder.syncPixiuSubscription(io.netbird.client.tool.SrvAdoption.AUTO, null);
         }
 
         @Override
@@ -729,6 +730,17 @@ public class MainActivity extends AppCompatActivity implements ServiceAccessor, 
             throw new Exception("VPN service not connected");
         }
         return mBinder.pixiuUpdateSubscription(url);
+    }
+
+    @Override
+    public void syncPixiuSubscription(int trigger, Runnable done) {
+        if (mBinder == null) {
+            if (done != null) {
+                done.run();
+            }
+            return;
+        }
+        mBinder.syncPixiuSubscription(trigger, done);
     }
 
     @Override

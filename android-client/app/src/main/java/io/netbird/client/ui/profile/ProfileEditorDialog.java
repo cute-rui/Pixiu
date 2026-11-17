@@ -22,7 +22,9 @@ import java.util.concurrent.Executors;
 
 import io.netbird.client.R;
 import io.netbird.client.tool.Profile;
+import io.netbird.client.ServiceAccessor;
 import io.netbird.client.tool.ProfileManagerWrapper;
+import io.netbird.client.tool.SrvAdoption;
 import io.netbird.client.ui.MDMLock;
 import io.netbird.client.ui.server.ManagementServerSwitch;
 import io.netbird.client.ui.server.ManagementUrl;
@@ -316,6 +318,9 @@ public final class ProfileEditorDialog {
                 showUrlWriteFailure(e);
                 return;
             }
+            if (editing.isActive()) {
+                requestSrvSync();
+            }
         }
 
         dialog.dismiss();
@@ -335,6 +340,12 @@ public final class ProfileEditorDialog {
                 ? R.string.mdm_managed_setting
                 : R.string.profiles_dialog_url_invalid));
         urlInput.requestFocus();
+    }
+
+    private void requestSrvSync() {
+        if (context instanceof ServiceAccessor) {
+            ((ServiceAccessor) context).syncPixiuSubscription(SrvAdoption.AUTO, null);
+        }
     }
 
     private void writeManagementUrl(String profileId, String managementUrl) throws Exception {

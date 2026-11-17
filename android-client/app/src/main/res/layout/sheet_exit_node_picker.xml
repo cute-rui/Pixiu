@@ -81,11 +81,27 @@
             android:inputType="textUri"
             android:importantForAutofill="no" />
 
+        <TextView
+            android:id="@+id/mihomo_srv_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp"
+            android:textColor="#B3B3B3"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/mihomo_update"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/mihomo_update" />
+
+        <Button
+            android:id="@+id/mihomo_use_server"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/mihomo_use_server"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/mihomo_status"

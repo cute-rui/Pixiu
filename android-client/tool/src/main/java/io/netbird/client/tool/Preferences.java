@@ -21,6 +21,10 @@ public class Preferences {
 
     private final String keyPixiuSubscription = "pixiu_subscription_url";
 
+    private final String keyPixiuSubscriptionSource = "pixiu_subscription_source";
+
+    private final String keyPixiuSubscriptionSrvHost = "pixiu_subscription_srv_host";
+
     private final String keyPixiuNode = "pixiu_selected_node";
 
     private final SharedPreferences sharedPref;
@@ -89,8 +93,56 @@ public class Preferences {
         return sharedPref.getString(keyPixiuSubscription, "");
     }
 
+    /**
+     * Saves a URL the user typed. An empty value clears the slot so the next
+     * SRV lookup can fill it. The same URL already stored from SRV stays SRV.
+     */
     public void setPixiuSubscription(String url) {
-        sharedPref.edit().putString(keyPixiuSubscription, url == null ? "" : url).apply();
+        setUserSubscription(url);
+    }
+
+    /** Empty when the slot is empty. A legacy URL with no source counts as user. */
+    public String getPixiuSubscriptionSource() {
+        String url = getPixiuSubscription();
+        String source = sharedPref.getString(keyPixiuSubscriptionSource, "");
+        if ((source == null || source.isEmpty()) && url != null && !url.isEmpty()) {
+            return "user";
+        }
+        return source == null ? "" : source;
+    }
+
+    public String getPixiuSubscriptionSrvHost() {
+        String host = sharedPref.getString(keyPixiuSubscriptionSrvHost, "");
+        return host == null ? "" : host;
+    }
+
+    public void setUserSubscription(String url) {
+        String value = url == null ? "" : url.trim();
+        if (value.isEmpty()) {
+            sharedPref.edit()
+                    .putString(keyPixiuSubscription, "")
+                    .putString(keyPixiuSubscriptionSource, "")
+                    .putString(keyPixiuSubscriptionSrvHost, "")
+                    .apply();
+            return;
+        }
+        String source = sharedPref.getString(keyPixiuSubscriptionSource, "");
+        if ("srv".equals(source) && value.equals(getPixiuSubscription())) {
+            return;
+        }
+        sharedPref.edit()
+                .putString(keyPixiuSubscription, value)
+                .putString(keyPixiuSubscriptionSource, "user")
+                .putString(keyPixiuSubscriptionSrvHost, "")
+                .apply();
+    }
+
+    public void setSrvSubscription(String url, String host) {
+        sharedPref.edit()
+                .putString(keyPixiuSubscription, url == null ? "" : url)
+                .putString(keyPixiuSubscriptionSource, "srv")
+                .putString(keyPixiuSubscriptionSrvHost, host == null ? "" : host)
+                .apply();
     }
 
     public String getPixiuNode() {

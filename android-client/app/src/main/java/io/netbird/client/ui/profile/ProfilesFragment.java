@@ -26,7 +26,9 @@ import java.util.List;
 import io.netbird.client.R;
 import io.netbird.client.tool.MDMBridge;
 import io.netbird.client.tool.Profile;
+import io.netbird.client.ServiceAccessor;
 import io.netbird.client.tool.ProfileManagerWrapper;
+import io.netbird.client.tool.SrvAdoption;
 
 public class ProfilesFragment extends Fragment {
     private static final String TAG = "ProfilesFragment";
@@ -179,6 +181,9 @@ public class ProfilesFragment extends Fragment {
             // Switch profile (VPN service will be stopped automatically in ProfileManagerWrapper)
             profileManager.switchProfile(profile.getID());
             usageTracker.markUsed(profile.getID());
+            if (getActivity() instanceof ServiceAccessor) {
+                ((ServiceAccessor) getActivity()).syncPixiuSubscription(SrvAdoption.AUTO, null);
+            }
 
             loadProfiles();
 

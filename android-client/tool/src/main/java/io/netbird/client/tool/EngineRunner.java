@@ -505,6 +505,22 @@ class EngineRunner {
         return goClient.pixiuUpdateSubscription(url);
     }
 
+    public void syncPixiuSubscription(int trigger, Runnable clearNode, Runnable done) {
+        PixiuSrvSync.submit(context, new PixiuSrvSync.Backend() {
+            @Override
+            public String discover(String managementURL, String dnsServers) throws Exception {
+                warnIfOnMainThread("pixiuDiscoverSubscription");
+                return goClient.pixiuDiscoverSubscription(managementURL, dnsServers);
+            }
+
+            @Override
+            public String update(String url) throws Exception {
+                warnIfOnMainThread("pixiuUpdateSubscription");
+                return goClient.pixiuUpdateSubscription(url);
+            }
+        }, clearNode, trigger, done);
+    }
+
     public void pixiuSelectNode(String name) throws Exception {
         goClient.pixiuSelectNode(name);
     }
